@@ -1,378 +1,108 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
-
-{% block title %}{{ user.username }}'s Profile{% endblock %}
+{% block title %}{{ user.username }} - FitLifeGuide{% endblock %}
 
 {% block content %}
-<!-- Profile Header with Cover Image -->
-<div class="profile-header position-relative mb-5">
-    <div class="cover-image position-relative" style="height: 200px; {% if user.profile.cover_image %}background-image: url('{{ user.profile.cover_image.url }}'); background-size: cover; background-position: center;{% else %}background: linear-gradient(135deg, #1a1a1a 0%, #363636 100%);{% endif %}">
-        <div class="overlay position-absolute w-100 h-100" style="background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%);"></div>
-    </div>
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="profile-info text-center position-relative" style="margin-top: -75px;">
-                    <div class="avatar-wrapper mb-3">
-                        <img src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
-                             alt="{{ user.username }}'s Avatar" 
-                             class="rounded-circle border-4 border-dark" 
-                             style="width:150px; height:150px; object-fit:cover; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                    </div>
-                    <h2 class="text-light mb-1">{{ user.username }}</h2>
-                    <p class="text-cyan mb-2">
-                        <i class="bi bi-clock-history me-2"></i>Member since {{ user.date_joined|date:"F Y" }}
-                    </p>
-                    {% if user.profile.status %}
-                    <div class="status-badge mb-3">
-                        <span class="badge bg-dark-subtle border border-cyan px-3 py-2">
-                            <span class="text-cyan">{{ user.profile.get_status_display }}</span>
-                            <small class="d-block text-muted mt-1">
-                                <i class="bi bi-clock me-1"></i>{{ user.profile.status_updated_at|timesince }} ago
-                            </small>
-                        </span>
-                    </div>
-                    {% endif %}
-                    <div class="profile-stats d-flex justify-content-center gap-4 mb-3">
-                        <div class="stat-item text-center">
-                            <h4 class="mb-0 text-cyan">{{ posts.count|default:"0" }}</h4>
-                            <small class="text-light">Posts</small>
-                        </div>
-                        <div class="stat-item text-center">
-                            <h4 class="mb-0 text-cyan">{{ meals.count|default:"0" }}</h4>
-                            <small class="text-light">Meal Plans</small>
-                        </div>
-                        <div class="stat-item text-center">
-                            <h4 class="mb-0 text-cyan">{{ workouts.count|default:"0" }}</h4>
-                            <small class="text-light">Workouts</small>
-                        </div>
-                    </div>
-                    <div class="profile-actions">
-                        <a href="{% url 'edit_profile' %}" class="btn btn-cyan btn-sm">
-                            <i class="bi bi-pencil-square me-2"></i>Edit Profile
-                        </a>
-                        <a href="#" class="btn btn-outline-light btn-sm ms-2">
-                            <i class="bi bi-gear-fill me-2"></i>Settings
-                        </a>
-                    </div>
-                </div>
+<section class="fl-card fl-profile-head">
+    <div class="fl-profile-cover" style="background-image: url('{{ user.profile.cover_image.url }}'), linear-gradient(135deg, #1a1a1a, #2a2a2e);"></div>
+    <div class="fl-profile-body">
+        <img class="fl-avatar" src="{{ user.profile.avatar.url }}" alt="{{ user.username }} avatar">
+        <div class="fl-profile-copy">
+            <div class="fl-label">Member since {{ user.date_joined|date:"F Y" }}</div>
+            <h1 class="fl-h fl-profile-name">{{ user.username }}</h1>
+            <p class="fl-muted">
+                {% if user.profile.location %}{{ user.profile.location }}{% else %}No location yet{% endif %}
+                {% if user.profile.bio %} · {{ user.profile.bio }}{% endif %}
+            </p>
+            <div class="fl-pill-row">
+                <span class="fl-pill fl-pill-on">Status: {{ user.profile.get_status_display }}</span>
+                <a class="fl-pill" href="{% url 'edit_profile' %}">Edit profile</a>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Main Content -->
-<div class="container mb-5">
-    <div class="row">
-        <!-- LEFT SIDEBAR -->
-        <div class="col-lg-4 mb-4">
-            <!-- Quick Stats Card -->
-            <div class="card bg-dark border-secondary mb-4">
-                <div class="card-header bg-transparent border-secondary">
-                    <h5 class="card-title mb-0 text-cyan">
-                        <i class="bi bi-graph-up me-2"></i>Quick Stats
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="progress-item mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-light">Weekly Goals</span>
-                            <span class="text-cyan">75%</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-cyan" role="progressbar" style="width: 75%"></div>
-                        </div>
-                    </div>
-                    <div class="progress-item mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-light">Meal Plan Adherence</span>
-                            <span class="text-cyan">80%</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-cyan" role="progressbar" style="width: 80%"></div>
-                        </div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-light">Workout Completion</span>
-                            <span class="text-cyan">60%</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-cyan" role="progressbar" style="width: 60%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contact Info -->
-            <div class="card bg-dark border-secondary">
-                <div class="card-header bg-transparent border-secondary">
-                    <h5 class="card-title mb-0 text-cyan">
-                        <i class="bi bi-person-lines-fill me-2"></i>Contact Info
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="contact-item mb-3">
-                        <small class="text-light-emphasis d-block">Email</small>
-                        <div class="text-light">{{ user.email }}</div>
-                    </div>
-                    <div class="contact-item">
-                        <small class="text-light-emphasis d-block">Location</small>
-                        <div class="text-light">{% if user.profile.location %}{{ user.profile.location }}{% else %}Not specified{% endif %}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- RIGHT CONTENT -->
-        <div class="col-lg-8">
-            <div class="card bg-dark border-secondary">
-                <div class="card-header bg-transparent border-secondary">
-                    <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active custom-tab" id="posts-tab" data-bs-toggle="tab" data-bs-target="#posts" type="button" role="tab">
-                                <i class="bi bi-chat-left-text me-2"></i>Posts
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link custom-tab" id="meal-tab" data-bs-toggle="tab" data-bs-target="#meal" type="button" role="tab">
-                                <i class="fa-solid fa-utensils me-2"></i>Meal Plans
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link custom-tab" id="workout-tab" data-bs-toggle="tab" data-bs-target="#workout" type="button" role="tab">
-                                <i class="fa-solid fa-dumbbell me-2"></i>Workout Plan
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos" type="button" role="tab">
-                                <i class="bi bi-play-circle me-2"></i>Video History
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="card-body tab-content" id="profileTabsContent">
-                    <!-- POSTS TAB -->
-                    <div class="tab-pane fade show active" id="posts" role="tabpanel">
-                        {% if posts %}
-                            <div class="row g-4">
-                                {% for post in posts %}
-                                    <div class="col-12">
-                                        <div class="card bg-dark-subtle border-secondary h-100">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                                    <h5 class="card-title text-light mb-0">{{ post.title }}</h5>
-                                                    <span class="badge bg-cyan">{{ post.created_at|date:"M d, Y" }}</span>
-                                                </div>
-                                                <p class="card-text text-light-emphasis">{{ post.content|truncatewords:30 }}</p>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div class="post-stats">
-                                                        <span class="text-light-emphasis me-3">
-                                                            <i class="bi bi-heart me-1"></i>{{ post.likes.count|default:"0" }}
-                                                        </span>
-                                                        <span class="text-light-emphasis">
-                                                            <i class="bi bi-chat me-1"></i>{{ post.comments.count|default:"0" }}
-                                                        </span>
-                                                    </div>
-                                                    <a href="{% url 'post_detail' post.slug %}" class="btn btn-outline-cyan btn-sm">
-                                                        Read More <i class="bi bi-arrow-right ms-1"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="bi bi-journal-text display-4 text-light-emphasis mb-3"></i>
-                                <p class="text-light">You haven't created any posts yet.</p>
-                                <a href="{% url 'create_post' %}" class="btn btn-cyan btn-sm">Create Your First Post</a>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- MEAL PLANNER TAB -->
-                    <div class="tab-pane fade" id="meal" role="tabpanel">
-                        {% if meals %}
-                            <div class="row g-4">
-                                {% for meal in meals %}
-                                    <div class="col-md-6">
-                                        <div class="card bg-dark-subtle border-secondary h-100">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                                    <h5 class="card-title text-light mb-0">
-                                                        {{ meal.get_meal_type_display }}
-                                                    </h5>
-                                                    <span class="badge {% if meal.status == 'Completed' %}bg-success{% else %}bg-warning{% endif %}">
-                                                        {{ meal.status }}
-                                                    </span>
-                                                </div>
-                                                <p class="text-light-emphasis mb-2">{{ meal.food_items }}</p>
-                                                <div class="meal-info">
-                                                    <small class="text-light-emphasis d-block mb-2">
-                                                        <i class="bi bi-calendar3 me-2"></i>{{ meal.day_of_week }} - {{ meal.date }}
-                                                    </small>
-                                                    <small class="text-light-emphasis d-block">
-                                                        <i class="bi bi-lightning-charge me-2"></i>{{ meal.calories }} kcal
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="fa-solid fa-utensils display-4 text-light-emphasis mb-3"></i>
-                                <p class="text-light">No meal plans added yet.</p>
-                                <a href="{% url 'tools:meal_planner' %}" class="btn btn-cyan btn-sm">Create Meal Plan</a>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- WORKOUT PLANNER TAB -->
-                    <div class="tab-pane fade" id="workout" role="tabpanel">
-                        {% if workouts %}
-                            <div class="row g-4">
-                                {% for workout in workouts %}
-                                    <div class="col-md-6">
-                                        <div class="card bg-dark-subtle border-secondary h-100">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                                    <h5 class="card-title text-light mb-0">{{ workout.title }}</h5>
-                                                    <span class="badge {% if workout.status == 'Completed' %}bg-success{% else %}bg-warning{% endif %}">
-                                                        {{ workout.status }}
-                                                    </span>
-                                                </div>
-                                                <p class="text-light-emphasis mb-2">{{ workout.exercises }}</p>
-                                                <div class="workout-info">
-                                                    <small class="text-light-emphasis d-block mb-2">
-                                                        <i class="bi bi-calendar3 me-2"></i>{{ workout.day_of_week }} - {{ workout.date }}
-                                                    </small>
-                                                    <small class="text-light-emphasis d-block">
-                                                        <i class="bi bi-clock me-2"></i>{{ workout.duration_minutes }} minutes
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="fa-solid fa-dumbbell display-4 text-light-emphasis mb-3"></i>
-                                <p class="text-light">No workouts added yet.</p>
-                                <a href="{% url 'tools:workout_hub' %}" class="btn btn-cyan btn-sm">Plan Workout</a>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- VIDEO HISTORY TAB -->
-                    <div class="tab-pane fade" id="videos" role="tabpanel">
-                        {% if video_history %}
-                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                                {% for video in video_history %}
-                                <div class="col">
-                                    <div class="card h-100 bg-dark border-secondary">
-                                        <div class="position-relative">
-                                            <img src="{{ video.thumbnail_url }}" class="card-img-top" alt="{{ video.title }}">
-                                            <span class="position-absolute bottom-0 end-0 bg-dark text-light px-2 py-1 m-2 rounded-pill">
-                                                <i class="bi bi-clock-fill me-1"></i>{{ video.duration }}
-                                            </span>
-                                        </div>
-                                        <div class="card-body">
-                                            <h5 class="card-title text-truncate" title="{{ video.title }}">{{ video.title }}</h5>
-                                            <p class="card-text">
-                                                <small class="text-info">
-                                                    <i class="bi bi-person-circle me-1"></i>{{ video.channel_title }}
-                                                </small>
-                                            </p>
-                                            <p class="card-text">
-                                                <small class="text-muted">
-                                                    <i class="bi bi-calendar me-1"></i>Watched on {{ video.viewed_at|date:"M d, Y" }}
-                                                </small>
-                                            </p>
-                                            <a href="https://www.youtube.com/watch?v={{ video.video_id }}" 
-                                               class="btn btn-outline-cyan btn-sm w-100" 
-                                               target="_blank">
-                                                <i class="bi bi-play-fill me-1"></i>Watch Again
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="bi bi-play-circle display-4 text-light-emphasis mb-3"></i>
-                                <p class="text-light">No videos watched yet.</p>
-                                <a href="{% url 'videos' %}" class="btn btn-cyan btn-sm">Browse Videos</a>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+        <div class="fl-profile-side">
+            <div class="fl-label">Last workout</div>
+            <div class="fl-h">{% if workouts %}{{ workouts.0.date|date:"M d" }}{% else %}&mdash;{% endif %}</div>
         </div>
     </div>
-</div>
+</section>
 
-<style>
-    .profile-header .avatar-wrapper img {
-        transition: transform 0.3s ease;
-    }
-    .profile-header .avatar-wrapper img:hover {
-        transform: scale(1.05);
-    }
-    .custom-tab {
-        color: #adb5bd !important;
-        border: none !important;
-        padding: 0.75rem 1rem;
-        margin-right: 0.5rem;
-        transition: all 0.3s ease;
-    }
-    .custom-tab:hover {
-        color: #fff !important;
-        background-color: rgba(255,255,255,0.1);
-    }
-    .custom-tab.active {
-        color: #fff !important;
-        background-color: transparent !important;
-        border-bottom: 2px solid #0dcaf0 !important;
-    }
-    .progress {
-        background-color: rgba(255,255,255,0.1);
-    }
-    .card {
-        transition: transform 0.3s ease;
-    }
-    .card:hover {
-        transform: translateY(-2px);
-    }
-    .bg-dark-subtle {
-        background-color: rgba(33,37,41,0.7) !important;
-    }
-    .text-cyan {
-        color: #0dcaf0 !important;
-    }
-    .btn-cyan {
-        background-color: #0dcaf0;
-        border-color: #0dcaf0;
-        color: #000;
-    }
-    .btn-cyan:hover {
-        background-color: #0bacce;
-        border-color: #0bacce;
-        color: #000;
-    }
-    .btn-outline-cyan {
-        color: #0dcaf0;
-        border-color: #0dcaf0;
-    }
-    .btn-outline-cyan:hover {
-        background-color: #0dcaf0;
-        color: #000;
-    }
-</style>
+<section class="fl-grid-4 fl-stats" aria-label="Profile totals">
+    <div class="fl-card fl-stat">
+        <div class="fl-h">{{ workout_count }}</div>
+        <div class="fl-label">Workouts</div>
+    </div>
+    <div class="fl-card fl-stat">
+        <div class="fl-h">{{ meal_count }}</div>
+        <div class="fl-label">Meals</div>
+    </div>
+    <div class="fl-card fl-stat">
+        <div class="fl-h">{{ post_count }}</div>
+        <div class="fl-label">Posts</div>
+    </div>
+    <div class="fl-card fl-stat">
+        <div class="fl-h">{{ video_count }}</div>
+        <div class="fl-label">Videos</div>
+    </div>
+</section>
+
+<section class="fl-grid-2 fl-profile-sections">
+    <div class="fl-card">
+        <div class="fl-label fl-lime">Recent workouts</div>
+        {% for workout in workouts %}
+        <div class="fl-activity-row">
+            <div>
+                <strong>{{ workout.title }}</strong>
+                <div class="fl-muted">{{ workout.date|date:"M d" }} · {{ workout.get_status_display }}</div>
+            </div>
+            <span class="fl-pill">{{ workout.duration_minutes|default:"-" }} min</span>
+        </div>
+        {% empty %}
+        <p class="fl-muted fl-activity-empty">No workouts yet. <a href="{% url 'tools:workout_hub' %}">Plan one</a>.</p>
+        {% endfor %}
+    </div>
+
+    <div class="fl-card">
+        <div class="fl-label fl-lime">Recent meals</div>
+        {% for meal in meals %}
+        <div class="fl-activity-row">
+            <div>
+                <strong>{{ meal.get_meal_type_display }}</strong>
+                <div class="fl-muted">{{ meal.food_items|truncatechars:42 }}</div>
+            </div>
+            <span class="fl-pill">{{ meal.calories|default:"-" }} kcal</span>
+        </div>
+        {% empty %}
+        <p class="fl-muted fl-activity-empty">No meals yet. <a href="{% url 'tools:meal_planner' %}">Plan one</a>.</p>
+        {% endfor %}
+    </div>
+
+    <div class="fl-card">
+        <div class="fl-label fl-lime">Recent posts</div>
+        {% for post in posts %}
+        <a class="fl-activity-row" href="{% url 'post_detail' post.slug %}">
+            <div>
+                <strong>{{ post.title }}</strong>
+                <div class="fl-muted">{{ post.created_at|date:"M d, Y" }} · {{ post.content|truncatechars:48 }}</div>
+            </div>
+            <span class="fl-pill">Read</span>
+        </a>
+        {% empty %}
+        <p class="fl-muted fl-activity-empty">No posts yet. <a href="{% url 'create_post' %}">Share a session</a>.</p>
+        {% endfor %}
+    </div>
+
+    <div class="fl-card">
+        <div class="fl-label fl-lime">Watched videos</div>
+        {% for video in video_history %}
+        <a class="fl-activity-row" href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank" rel="noopener">
+            <div>
+                <strong>{{ video.title|truncatechars:46 }}</strong>
+                <div class="fl-muted">{{ video.channel_title }} · {{ video.viewed_at|date:"M d" }}</div>
+            </div>
+            <span class="fl-pill">Watch</span>
+        </a>
+        {% empty %}
+        <p class="fl-muted fl-activity-empty">No videos yet. <a href="{% url 'videos' %}">Browse videos</a>.</p>
+        {% endfor %}
+    </div>
+</section>
 {% endblock %}

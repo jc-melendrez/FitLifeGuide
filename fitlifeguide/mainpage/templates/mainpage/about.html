@@ -1,0 +1,35 @@
+{% extends 'mainpage/base.html' %}
+{% block title %}About - FitLifeGuide{% endblock %}
+
+{% block content %}
+<section class="fl-about-hero">
+    <div class="fl-label fl-lime">About FitLifeGuide</div>
+    <h1 class="fl-h">Built for the work between workouts.</h1>
+    <p>FitLifeGuide brings your training, meals, and community into one weekly rhythm. No noise, no perfect-week pressure, just a clear plan and a place to show up.</p>
+</section>
+
+<section class="fl-grid-3 fl-about-grid">
+    <div class="fl-card fl-about-card">
+        <div class="fl-label fl-lime">01</div>
+        <h2 class="fl-h">Plan</h2>
+        <p>Map your meals and sessions before the week gets busy.</p>
+    </div>
+    <div class="fl-card fl-about-card">
+        <div class="fl-label fl-lime">02</div>
+        <h2 class="fl-h">Show up</h2>
+        <p>Log what you finish and keep the streak honest.</p>
+    </div>
+    <div class="fl-card fl-about-card">
+        <div class="fl-label fl-lime">03</div>
+        <h2 class="fl-h">Share</h2>
+        <p>Post your training log and learn from people doing the same work.</p>
+    </div>
+</section>
+
+<section class="fl-cta">
+    <div class="fl-label">Start where you are</div>
+    <h2 class="fl-h">One week. One plan. One repeat.</h2>
+    <p class="fl-muted">Create a free account and start building the rhythm.</p>
+    <a class="fl-btn" href="{% url 'register' %}">Start free</a>
+</section>
+{% endblock %}

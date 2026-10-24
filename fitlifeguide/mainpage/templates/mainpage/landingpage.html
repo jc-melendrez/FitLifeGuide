@@ -1,92 +1,69 @@
 {% extends 'mainpage/base.html' %}
-{% block title %}Welcome to FitLifeGuide{% endblock %}
-
-{% block content1 %}
-<div class="row g-0">
-    <div class="bg-full">
-        <div class="{% if user.is_authenticated %}d-none {% else %} text-light text-center h-100 bg-img bg-full {% endif %}">
-            <h1 class="display-1 pt-5 fw-bold grad my-5">Welcome to FitLifeGuide</h1>
-            <p class="lead">Your journey to a healthier, stronger, and better life starts here.</p>
-            <div class="d-inline-block">
-                <a href="{% url 'register' %}" class="btn btn-linear btn-lg rounded-pill">Join Now</a>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-
-
+{% load static %}
+{% block title %}FitLifeGuide - Train, eat, repeat{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-
-
-<!-- Features Section -->
-<div class="row text-center mb-5 py-5 text-dark bg-linear">
-    <div class="col-12 py5">
-        <div class="row py-5">
-            <div class="col-md-4">
-                <h4>🏋️ Workout Plans</h4>
-                <p>Access goal-based training programs crafted by fitness experts.</p>
-            </div>
-            <div class="col-md-4">
-                <h4>🥗 Nutrition Tips</h4>
-                <p>Get meal plans and eating strategies for every lifestyle and goal.</p>
-            </div>
-            <div class="col-md-4">
-                <h4>💬 Community Forum</h4>
-                <p>Connect, share, and grow with like-minded health enthusiasts.</p>
-            </div>
+<section class="fl-hero">
+    <div class="fl-hero-bg" style="background-image: url('{% static 'mainpage/home_bg.jpg' %}');"></div>
+    <div class="fl-hero-content">
+        <div class="fl-label fl-lime">Your weekly fitness rhythm</div>
+        <h1 class="fl-h fl-hero-title">Train. Eat.<br><span class="fl-lime">Repeat.</span></h1>
+        <p class="fl-hero-copy">Plan your week, show up daily, and share the grind with people who get it.</p>
+        <div class="fl-hero-actions">
+            <a class="fl-btn" href="{% url 'register' %}">Start free</a>
+            <a class="fl-btn fl-btn-secondary" href="#features">See how it works</a>
         </div>
     </div>
-</div>
+</section>
 
-<!-- Call to Action -->
-<div class="text-center text-light p-5 mb-5">
-    {% if user.is_authenticated %}
-        <a href="{% url 'profile' %}" class="btn btn-outline-success btn-lg rounded-4">Go to Your Dashboard</a>
-    {% else %}
-        <a href="{% url 'register' %}" class="btn btn-cyan btn-lg rounded-4">Create an Account</a>
-        <p class="mt-2">Already a member? <a href="{% url 'login' %}">Login here</a>.</p>
-    {% endif %}
-</div>
-
-<!-- Testimonials Section -->
-<div class="bg-light text-dark p-5 rounded shadow-sm mb-5">
-    <h3 class="text-center mb-4">Success Stories</h3>
-    <div class="row py-5">
-        <div class="col-md-6">
-            <blockquote class="blockquote">
-                <p>"I lost 20 pounds and gained a ton of confidence thanks to FitLifeGuide!"</p>
-                <footer class="blockquote-footer">John V.</footer>
-            </blockquote>
-        </div>
-        <div class="col-md-6">
-            <blockquote class="blockquote">
-                <p>"The community kept me motivated — now I'm in the best shape of my life."</p>
-                <footer class="blockquote-footer">Kim C.</footer>
-            </blockquote>
-        </div>
+<section class="fl-grid-3 fl-stats" aria-label="FitLifeGuide activity">
+    <div class="fl-card fl-stat-card">
+        <div class="fl-h fl-stat-num">{{ total_workouts }}</div>
+        <div class="fl-label">Workouts logged</div>
     </div>
-</div>
-
-<!-- Latest Posts Preview -->
-{% if latest_posts %}
-<h3 class="mb-4">Latest From the Blog</h3>
-<div class="row">
-    {% for post in latest_posts %}
-    <div class="col-md-4">
-        <div class="card mb-4 shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">{{ post.title }}</h5>
-                <p class="card-text">{{ post.summary|truncatewords:20 }}</p>
-                <a href="{% url 'post_detail' post.slug %}" class="btn btn-outline-primary btn-sm">Read More</a>
-            </div>
-        </div>
+    <div class="fl-card fl-stat-card">
+        <div class="fl-h fl-stat-num">{{ total_meals }}</div>
+        <div class="fl-label">Meals planned</div>
     </div>
-    {% endfor %}
-</div>
-{% endif %}
+    <div class="fl-card fl-stat-card">
+        <div class="fl-h fl-stat-num">{{ total_members }}</div>
+        <div class="fl-label">Members training</div>
+    </div>
+</section>
+
+<section class="fl-steps" id="features">
+    <div class="fl-label fl-lime">How it works</div>
+    <div class="fl-step fl-card">
+        <div class="fl-step-num">01</div>
+        <h2 class="fl-h fl-step-title">Plan your week</h2>
+        <p class="fl-step-copy">Set your meals and training sessions before the week starts. Keep the plan where you can see it.</p>
+    </div>
+    <div class="fl-step fl-card">
+        <div class="fl-step-num">02</div>
+        <h2 class="fl-h fl-step-title">Show up daily</h2>
+        <p class="fl-step-copy">Log what you finish, keep your status current, and let the small wins stack up.</p>
+    </div>
+    <div class="fl-step fl-card">
+        <div class="fl-step-num">03</div>
+        <h2 class="fl-h fl-step-title">Share the grind</h2>
+        <p class="fl-step-copy">Post your training log, ask the forum, and watch a community of people doing the same work.</p>
+    </div>
+</section>
+
+<section class="fl-card fl-card-highlight fl-community" id="community">
+    <div class="fl-label fl-lime">Community</div>
+    <h2 class="fl-h">The grind is better together.</h2>
+    <p class="fl-muted">Share a session, ask for a form check, or just say what worked this week.</p>
+    <div class="fl-hero-actions">
+        <a class="fl-btn" href="{% url 'register' %}">Join the community</a>
+        <a class="fl-btn fl-btn-secondary" href="{% url 'login' %}">I already have an account</a>
+    </div>
+</section>
+
+<section class="fl-cta">
+    <div class="fl-label">No perfect week required</div>
+    <h2 class="fl-h">Your first week starts here.</h2>
+    <p class="fl-muted">Create a free account and build the rhythm one day at a time.</p>
+    <a class="fl-btn" href="{% url 'register' %}">Start free</a>
+</section>
 {% endblock %}
-

@@ -7,399 +7,127 @@
     <meta name="description" content="FitLifeGuide - Your personal fitness and wellness companion">
     <title>{% block title %}FitLifeGuide{% endblock %}</title>
 
-    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
-
-    <!-- External CSS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://kit.fontawesome.com/bb98d90c72.js" crossorigin="anonymous"></script>
-
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'mainpage/styles.css' %}">
-
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-dark text-light d-flex flex-column min-vh-100">
-    {% csrf_token %}
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top border-bottom border-secondary">
-        <div class="container-fluid px-4">
-            <!-- Brand -->
-            <a class="navbar-brand grad fw-bold" href="{% url 'home' %}">
-                <i class="bi bi-lightning-charge-fill me-2"></i>FitLifeGuide
-            </a>
+<body class="fl{% if user.is_authenticated %} fl-auth{% endif %}">
+    <header class="fl-topbar">
+        <div class="fl-topbar-inner">
+            <a class="fl-logo" href="{% if user.is_authenticated %}{% url 'home' %}{% else %}{% url 'welcome' %}{% endif %}">Fit<span class="fl-lime">Life</span>Guide</a>
 
-            <!-- Toggler -->
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
+            {% if user.is_authenticated %}
+            <button class="fl-search-trigger" type="button" data-fl-search-open aria-label="Open search">
+                <span>Search anything</span>
+                <kbd>Ctrl K</kbd>
             </button>
 
-            <!-- Collapsible Content -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-                {% if user.is_authenticated %}
-                <!-- Search Bar -->
-                <form class="d-flex mx-auto search-form my-2 my-lg-0" role="search" method="get" action="{% url 'home' %}">
-                    <div class="input-group search-group">
-                        <div class="position-relative w-100">
-                            <i class="bi bi-search position-absolute search-icon"></i>
-                            <input type="search" 
-                                   class="form-control search-input rounded-pill border-cyan ps-5"
-                                   placeholder="Search posts, workouts, and more..." 
-                                   name="q" 
-                                   aria-label="Search"
-                                   autocomplete="off">
-                        </div>
-                    </div>
+            <div class="fl-top-actions">
+                <a class="fl-pill" href="{% url 'edit_profile' %}" title="Edit status">Status: {{ user.profile.get_status_display }}</a>
+                <a class="fl-pill" href="{% url 'profile' %}">{{ user.username }}</a>
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button class="fl-pill" type="submit">Log out</button>
                 </form>
-                {% endif %}
-
-                <!-- Navigation Links -->
-                <ul class="navbar-nav ms-auto align-items-center gap-2">
-                    {% if user.is_authenticated %}
-                    <!-- Mobile-only links (Moved to top for mobile) -->
-                    <div class="d-lg-none w-100 text-center">
-                        <li class="nav-item mb-2">
-                            <a class="nav-link text-cyan d-inline-block" href="{% url 'profile' %}">
-                                <i class="bi bi-person-circle me-1"></i>Profile
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link text-cyan d-inline-block" href="{% url 'edit_profile' %}">
-                                <i class="bi bi-pencil-square me-1"></i>Edit Profile
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link text-cyan d-inline-block" href="{% url 'tools:meal_planner' %}">
-                                <i class="fa-solid fa-utensils me-1"></i>Meal Planner
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link text-cyan d-inline-block" href="{% url 'tools:workout_hub' %}">
-                                <i class="fa-solid fa-dumbbell me-1"></i>Workout Hub
-                            </a>
-                        </li>
-                        <div class="border-top border-secondary my-3 mx-auto" style="width: 80%;"></div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Common Links -->
-                    <li class="nav-item {% if not user.is_authenticated %}text-center{% endif %}">
-                        <a class="nav-link text-cyan d-inline-block" href="{% url 'home' %}">
-                            <i class="bi bi-house-door me-1"></i>Home
-                        </a>
-                    </li>
-
-                    {% if user.is_authenticated %}
-                    <!-- Authenticated User Links -->
-                    <li class="nav-item d-lg-inline-block text-center">
-                        <a class="nav-link text-cyan d-inline-block" href="{% url 'forum_list' %}">
-                            <i class="bi bi-chat-dots me-1"></i>Forum
-                        </a>
-                    </li>
-                    <li class="nav-item d-lg-inline-block text-center">
-                        <a class="nav-link text-cyan d-inline-block" href="{% url 'posts' %}">
-                            <i class="bi bi-pencil-square me-1"></i>Post
-                        </a>
-                    </li>
-                    <li class="nav-item d-lg-inline-block text-center">
-                        <a class="nav-link text-cyan d-inline-block" href="{% url 'videos' %}">
-                            <i class="bi bi-play-circle me-1"></i>Videos
-                        </a>
-                    </li>
-                    <!-- <li class="nav-item d-lg-inline-block text-center">
-                        <a class="nav-link text-cyan d-inline-block" href="{% url 'home' %}">
-                            <i class="bi bi-shop me-1"></i>Store
-                        </a>
-                    </li> -->
-                    
-                    <!-- Mobile-only logout (at bottom) -->
-                    <div class="d-lg-none w-100 text-center">
-                        <div class="border-top border-secondary my-3 mx-auto" style="width: 80%;"></div>
-                        <li class="nav-item">
-                            <form action="{% url 'logout' %}" method="post" class="m-0">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" style="width: 150px;">
-                                    <i class="bi bi-box-arrow-right me-1"></i>Logout
-                                </button>
-                            </form>
-                        </li>
-                    </div>
-                    {% else %}
-                    <!-- Guest Links -->
-                    <li class="nav-item text-center">
-                        <a class="nav-link text-cyan d-inline-block" href="{% url 'about' %}">
-                            <i class="bi bi-info-circle me-1"></i>About
-                        </a>
-                    </li>
-                    <li class="nav-item text-center">
-                        <a class="nav-link text-cyan d-inline-block" href="{% url 'contact' %}">
-                            <i class="bi bi-envelope me-1"></i>Contact
-                        </a>
-                    </li>
-                    <li class="nav-item text-center mt-2">
-                        <a class="btn btn-cyan rounded-5 px-4" href="{% url 'login' %}">Login</a>
-                    </li>
-                    <li class="nav-item text-center mt-2">
-                        <a class="btn btn-cyan rounded-5 px-4" href="{% url 'register' %}">Register</a>
-                    </li>
-                    {% endif %}
-                </ul>
             </div>
-        </div>
-    </nav>
-
-    <!-- Alert Messages -->
-    {% if messages %}
-    <div class="container-fluid px-4 mt-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Main Content Area -->
-    <div class="container-fluid flex-grow-1  pb-4">
-        <div class="row">
-            <!-- Landing Page Content (for guests) -->
-            {% if not user.is_authenticated %}
-            <div class="col-12 bg-img">
-                {% block content1 %}{% endblock %}
-            </div>
-            {% endif %}
-
-            <!-- Main Content -->
-            <div class="{% if user.is_authenticated %}col-lg-9 col-md-8{% else %}col-12{% endif %}">
-                {% block content %}{% endblock %}
-            </div>
-
-            <!-- Sidebar (for authenticated users) -->
-            {% if user.is_authenticated %}
-            <aside class="col-lg-3 col-md-4 d-none d-lg-block">
-                {% block sidebar %}
-                <div class="card bg-dark text-light shadow-sm sticky-top" style="top: 80px;">
-                    <!-- Profile Section -->
-                    <div class="card-header bg-gradient text-info fw-bold">
-                        <i class="bi bi-person-circle me-2"></i>Profile
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item bg-dark border-secondary">
-                            <a href="{% url 'profile' %}" class="text-decoration-none text-aqua d-block py-2">
-                                <i class="bi bi-person me-2"></i>View Profile
-                            </a>
-                        </li>
-                        <li class="list-group-item bg-dark border-secondary">
-                            <a href="{% url 'edit_profile' %}" class="text-decoration-none text-aqua d-block py-2">
-                                <i class="bi bi-pencil-square me-2"></i>Edit Profile
-                            </a>
-                        </li>
-                        <li class="list-group-item bg-dark border-secondary">
-                            <div class="d-flex align-items-center">
-                                <span class="current-status me-2">{{ user.profile.get_status_display }}</span>
-                                <select id="statusUpdate" class="form-select form-select-sm bg-dark text-light border-secondary">
-                                    <option value="" disabled>Update Status</option>
-                                    {% for value, label in user.profile.STATUS_CHOICES %}
-                                    <option value="{{ value }}" {% if user.profile.status == value %}selected{% endif %}>
-                                        {{ label }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <small class="text-muted d-block mt-1">
-                                <i class="bi bi-clock me-1"></i>Updated {{ user.profile.status_updated_at|timesince }} ago
-                            </small>
-                        </li>
-                    </ul>
-
-                    <!-- FitLife Planner Section -->
-                    <div class="card-header bg-gradient text-info fw-bold">
-                        <i class="bi bi-calendar-check me-2"></i>FitLife Planner
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item bg-dark border-secondary">
-                            <a href="{% url 'tools:meal_planner' %}" class="text-decoration-none text-aqua d-block py-2">
-                                <i class="fa-solid fa-utensils me-2"></i>Meal Planner
-                            </a>
-                        </li>
-                        <li class="list-group-item bg-dark border-secondary">
-                            <a href="{% url 'tools:workout_hub' %}" class="text-decoration-none text-aqua d-block py-2">
-                                <i class="fa-solid fa-dumbbell me-2"></i>Workout Hub
-                            </a>
-                        </li>
-                        <li class="list-group-item bg-dark border-secondary">
-                            <form action="{% url 'logout' %}" method="post" class="m-0 p-0">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger w-100">
-                                    <i class="bi bi-box-arrow-right me-1"></i>Logout
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
-                {% endblock %}
-            </aside>
+            {% else %}
+            <nav class="fl-guest-nav" aria-label="Main navigation">
+                <a href="{% url 'welcome' %}#features">Features</a>
+                <a href="{% url 'welcome' %}#community">Community</a>
+                <a href="{% url 'about' %}">About</a>
+                <a class="fl-pill" href="{% url 'login' %}">Log in</a>
+                <a class="fl-pill fl-pill-on" href="{% url 'register' %}">Get started</a>
+            </nav>
             {% endif %}
         </div>
-    </div>
+    </header>
 
-    <!-- Footer -->
-    <footer class="mt-auto py-3 bg-dark border-top border-secondary">
-        <div class="container-fluid px-4">
-            <div class="row align-items-center">
-                <div class="col-md-6 text-center text-md-start">
-                    <span class="text-light-emphasis">&copy; {% now "Y" %} FitLifeGuide. All rights reserved.</span>
-                </div>
-                <div class="col-md-6 text-center text-md-end mt-3 mt-md-0">
-                    <a href="#" class="text-cyan text-decoration-none me-3 hover-bright">Privacy Policy</a>
-                    <a href="#" class="text-cyan text-decoration-none me-3 hover-bright">Terms of Service</a>
-                    <a href="#" class="text-cyan text-decoration-none hover-bright">Contact Us</a>
-                </div>
-            </div>
+    <main class="fl-main">
+        {% if messages %}
+        <div class="fl-messages">
+            {% for message in messages %}
+            <div class="fl-alert {% if message.tags == 'error' %}fl-alert-error{% else %}fl-alert-info{% endif %}" role="alert">{{ message }}</div>
+            {% endfor %}
         </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="fl-footer">
+        <span>&copy; {% now "Y" %} FitLifeGuide. All rights reserved.</span>
+        <nav aria-label="Footer navigation">
+            <a href="{% url 'about' %}">About</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+        </nav>
     </footer>
 
-    <!-- JavaScript -->
+    {% if user.is_authenticated %}
+    <nav class="fl-dock" aria-label="App navigation">
+        <a href="{% url 'home' %}" class="{% if request.path == '/' or '/home/' in request.path %}is-on{% endif %}">Today</a>
+        <a href="{% url 'tools:meal_planner' %}" class="{% if '/meal-planner/' in request.path or '/workout-hub/' in request.path or '/add-workout/' in request.path or '/edit-workout/' in request.path %}is-on{% endif %}">Plan</a>
+        <a href="{% url 'videos' %}" class="{% if '/videos/' in request.path or '/video/' in request.path %}is-on{% endif %}">Videos</a>
+        <a href="{% url 'posts' %}" class="{% if '/posts/' in request.path or '/forum/' in request.path or '/thread/' in request.path %}is-on{% endif %}">Community</a>
+        <a href="{% url 'profile' %}" class="{% if '/profile/' in request.path %}is-on{% endif %}">Me</a>
+    </nav>
+
+    <dialog id="fl-search" class="fl-dialog" aria-label="Search">
+        <form method="get" action="{% url 'home' %}">
+            <div class="fl-label">Search</div>
+            <input class="fl-input" type="search" name="q" placeholder="Search workouts, articles, videos" aria-label="Search" autocomplete="off">
+            <div class="fl-dialog-actions">
+                <button class="fl-btn fl-btn-secondary" type="button" data-fl-search-close>Cancel</button>
+                <button class="fl-btn" type="submit">Search</button>
+            </div>
+        </form>
+    </dialog>
+    {% endif %}
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    {% block extra_js %}
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const statusSelect = document.getElementById('statusUpdate');
-        if (statusSelect) {
-            statusSelect.addEventListener('change', function() {
-                const newStatus = this.value;
-                const formData = new FormData();
-                formData.append('status', newStatus);
-                
-                fetch('{% url "update_status" %}', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update the current status display
-                        const currentStatus = document.querySelector('.current-status');
-                        if (currentStatus) {
-                            currentStatus.textContent = data.status_text;
-                        }
-                        // Update the "Updated X ago" text
-                        const statusTime = document.querySelector('.text-muted');
-                        if (statusTime) {
-                            statusTime.innerHTML = '<i class="bi bi-clock me-1"></i>Updated just now';
-                        }
-                    }
-                })
-                .catch(error => console.error('Error:', error));
+    document.addEventListener('DOMContentLoaded', function () {
+        const dialog = document.getElementById('fl-search');
+        if (!dialog) return;
+
+        const input = dialog.querySelector('input[name="q"]');
+        const openSearch = function () {
+            if (!dialog.open) {
+                dialog.showModal();
+                input.focus();
+            }
+        };
+
+        document.querySelectorAll('[data-fl-search-open]').forEach(function (button) {
+            button.addEventListener('click', openSearch);
+        });
+
+        document.querySelectorAll('[data-fl-search-close]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                dialog.close();
             });
-        }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                openSearch();
+            }
+        });
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
     });
     </script>
-    {% endblock %}
-
-    <style>
-        .text-light-emphasis {
-            color: rgba(255, 255, 255, 0.8) !important;
-        }
-        .hover-bright:hover {
-            color: #fff !important;
-            text-shadow: 0 0 8px rgba(13, 202, 240, 0.5);
-        }
-        
-        /* Search Bar Styles */
-        .search-form {
-            width: 100%;
-            max-width: 300px;
-        }
-
-        @media (min-width: 768px) {
-            .search-form {
-                max-width: 400px;
-            }
-        }
-
-        @media (min-width: 992px) {
-            .search-form {
-                max-width: 500px;
-            }
-        }
-
-        @media (min-width: 1200px) {
-            .search-form {
-                max-width: 600px;
-            }
-        }
-
-        @media (min-width: 1400px) {
-            .search-form {
-                max-width: 800px;
-            }
-        }
-        
-        .search-group {
-            transition: all 0.3s ease;
-            width: 100%;
-        }
-        
-        .search-input {
-            background-color: rgba(33, 37, 41, 0.8) !important;
-            color: #fff !important;
-            border: 1px solid rgba(13, 202, 240, 0.3) !important;
-            transition: all 0.3s ease;
-            padding-right: 2.5rem;
-        }
-        
-        .search-input:focus {
-            background-color: rgba(33, 37, 41, 0.95) !important;
-            border-color: rgba(13, 202, 240, 0.8) !important;
-            box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
-        }
-        
-        .search-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .search-icon {
-            color: rgba(13, 202, 240, 0.7);
-            top: 50%;
-            transform: translateY(-50%);
-            left: 1rem;
-            z-index: 4;
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus + .search-icon,
-        .search-group:hover .search-icon {
-            color: rgba(13, 202, 240, 1);
-        }
-        
-        .search-group:hover .search-input {
-            border-color: rgba(13, 202, 240, 0.5) !important;
-        }
-        
-        @media (max-width: 991.98px) {
-            .navbar-collapse {
-                text-align: center;
-                padding: 1rem 0;
-            }
-            .navbar-nav {
-                width: 100%;
-            }
-            .nav-item {
-                margin: 0.25rem 0;
-            }
-            .navbar-nav .nav-link {
-                display: inline-block;
-                padding: 0.5rem 1.5rem;
-            }
-        }
-    </style>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,89 +1,69 @@
-{% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Register</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'mainpage/styles.css' %}">
-    <style>
-        body {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding: 20px 0;
-        }
-        @media (max-width: 768px) {
-            .card {
-                margin: 10px;
-            }
-            .container {
-                padding: 0 15px;
-            }
-        }
-    </style>
-</head>
-<body class="bg-img">
+{% extends 'users/auth_base.html' %}
+{% block title %}Create account - FitLifeGuide{% endblock %}
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-12 col-md-8 col-lg-5">
-            <div class="card p-3 p-md-4 shadow rounded-3 bg-dark border-cyan">
-                <h2 class="grad text-center">FitlifeGuide</h2>
-                <h3 class="text-center mb-4 text-light">Register</h3>
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    {% if messages %}
-                        <div class="container mt-3">
-                            {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+{% block content %}
+<div class="fl-auth-grid">
+    <section class="fl-card fl-auth-card">
+        <div class="fl-label fl-lime">Join FitLifeGuide</div>
+        <h1 class="fl-h fl-auth-title">Start <span class="fl-lime">now.</span></h1>
+        <p class="fl-muted">Build a weekly rhythm you can actually keep.</p>
 
-                    <div class="form-floating mb-3">
-                        {{ form.username }}
-                        <label for="{{ form.username.id_for_label }}">Username</label>
-                        {% if form.username.errors %}
-                            <div class="text-danger small">{{ form.username.errors.0 }}</div>
-                        {% endif %}
-                    </div>
+        <form method="post" novalidate class="fl-form">
+            {% csrf_token %}
 
-                    <div class="form-floating mb-3">
-                        {{ form.email }}
-                        <label for="{{ form.email.id_for_label }}">Email</label>
-                        {% if form.email.errors %}
-                            <div class="text-danger small">{{ form.email.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-floating mb-3">
-                        {{ form.password1 }}
-                        <label for="{{ form.password1.id_for_label }}">Password</label>
-                        {% if form.password1.errors %}
-                            <div class="text-danger small">{{ form.password1.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-floating mb-3">
-                        {{ form.password2 }}
-                        <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
-                        {% if form.password2.errors %}
-                            <div class="text-danger small">{{ form.password2.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Register</button>
-                    <p class="mt-3 text-center text-light">Already have an account? <a href="{% url 'login' %}" class="text-cyan">Login</a></p>
-                </form>
+            {% if form.non_field_errors %}
+            <div class="fl-alert fl-alert-error">
+                {{ form.non_field_errors }}
             </div>
-        </div>
-    </div>
-</div>
+            {% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+            <div class="fl-field">
+                <label class="fl-label" for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+                {{ form.username.errors }}
+            </div>
+
+            <div class="fl-field">
+                <label class="fl-label" for="{{ form.email.id_for_label }}">Email</label>
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+
+            <div class="fl-field">
+                <label class="fl-label" for="{{ form.password1.id_for_label }}">Password</label>
+                {{ form.password1 }}
+                {{ form.password1.errors }}
+            </div>
+
+            <div class="fl-field">
+                <label class="fl-label" for="{{ form.password2.id_for_label }}">Confirm password</label>
+                {{ form.password2 }}
+                {{ form.password2.errors }}
+            </div>
+
+            <button type="submit" class="fl-btn fl-btn-block">Create account</button>
+        </form>
+
+        <p class="fl-muted">Already a member? <a href="{% url 'login' %}">Log in</a></p>
+    </section>
+
+    <aside class="fl-card fl-card-highlight fl-auth-aside">
+        <div class="fl-label fl-lime">Step 2 of 3</div>
+        <h2 class="fl-h">What&rsquo;s your goal?</h2>
+        <p class="fl-muted">After you create your account, set a goal and pick how many days you train. We&rsquo;ll build your first week around it.</p>
+        <div class="fl-pill-row fl-preview-row" aria-hidden="true">
+            <span class="fl-pill fl-pill-on">Build muscle</span>
+            <span class="fl-pill">Lose fat</span>
+            <span class="fl-pill">Stay active</span>
+        </div>
+        <div class="fl-label">Days per week</div>
+        <div class="fl-pill-row fl-preview-row" aria-hidden="true">
+            <span class="fl-pill">2</span>
+            <span class="fl-pill">3</span>
+            <span class="fl-pill fl-pill-on">4</span>
+            <span class="fl-pill">5</span>
+            <span class="fl-pill">6</span>
+        </div>
+    </aside>
+</div>
+{% endblock %}

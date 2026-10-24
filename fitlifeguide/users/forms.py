@@ -9,12 +9,12 @@ from .models import Profile
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField(widget=forms.EmailInput(attrs={
         'class': 'form-control',
-        'placeholder': 'Email',
-        'autofocus': True
+        'placeholder': 'Email'
     }))
     username = forms.CharField(widget=forms.TextInput(attrs={
         'class': 'form-control',
-        'placeholder': 'Username'
+        'placeholder': 'Username',
+        'autofocus': True
     }))
     password1 = forms.CharField(widget=forms.PasswordInput(attrs={
         'class': 'form-control',
@@ -91,7 +91,10 @@ from django import forms
 class OTPForm(forms.Form):
     otp = forms.CharField(label="Enter OTP", max_length=6, widget=forms.TextInput(attrs={
         'class': 'form-control',
-        'placeholder': 'Enter 6-digit code'
+        'placeholder': 'Enter 6-digit code',
+        'inputmode': 'numeric',
+        'autocomplete': 'one-time-code',
+        'autofocus': True,
     }))
     
 

@@ -13,7 +13,7 @@ from .models import Profile, EmailOTP
 from django.http import JsonResponse
 from django.urls import reverse
 from django.core.mail import send_mail
-import random
+import secrets
 from django.conf import settings
 from django.utils import timezone
 from django.http import HttpResponseBadRequest
@@ -70,15 +70,19 @@ def profile(request):
     if request.path == reverse('profile'):
         template = 'users/profile.html'
         posts = BlogPost.objects.filter(author=request.user)
-        meals = MealPlanner.objects.filter(user=request.user).order_by('-date')[:7]
-        workouts = WorkoutPlanner.objects.filter(user=request.user).order_by('-date')[:7]
-        video_history = VideoHistory.objects.filter(user=request.user)[:9]
+        meals = MealPlanner.objects.filter(user=request.user).order_by('-date')
+        workouts = WorkoutPlanner.objects.filter(user=request.user).order_by('-date')
+        video_history = VideoHistory.objects.filter(user=request.user)
         
         context = {
-            'posts': posts,
-            'meals': meals,
-            'workouts': workouts,
-            'video_history': video_history,
+            'posts': posts[:5],
+            'meals': meals[:7],
+            'workouts': workouts[:7],
+            'video_history': video_history[:9],
+            'post_count': posts.count(),
+            'meal_count': meals.count(),
+            'workout_count': workouts.count(),
+            'video_count': video_history.count(),
         }
     else:
         template = 'users/edit_profile.html'
@@ -98,7 +102,6 @@ def profile(request):
 from django.shortcuts import redirect
 from django.core.mail import send_mail
 from django.contrib.auth.views import LoginView
-import random
 
 def send_otp_email(user, otp):
     """Helper function to send OTP email with HTML template"""
@@ -135,7 +138,7 @@ class CustomLoginView(LoginView):
         self.request.session['pre_2fa_user_id'] = user.id
 
         # Generate and store OTP
-        otp = str(random.randint(100000, 999999))
+        otp = str(secrets.randbelow(900000) + 100000)
         EmailOTP.objects.update_or_create(
             user=user,
             defaults={'code': otp, 'created_at': timezone.now()}
@@ -196,7 +199,7 @@ def resend_otp(request):
     user = User.objects.get(id=user_id)
     
     # Generate new OTP
-    otp = str(random.randint(100000, 999999))
+    otp = str(secrets.randbelow(900000) + 100000)
     EmailOTP.objects.update_or_create(
         user=user,
         defaults={'code': otp, 'created_at': timezone.now()}

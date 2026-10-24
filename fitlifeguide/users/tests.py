@@ -1,4 +1,5 @@
 import tempfile
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.core import mail
@@ -6,6 +7,10 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
+
+from community.models import BlogPost
+from tools.models import MealPlan, MealPlanner, WorkoutPlan, WorkoutPlanner
+from videos.models import VideoHistory
 
 from .models import EmailOTP, Profile
 
@@ -15,6 +20,13 @@ from .models import EmailOTP, Profile
     MEDIA_ROOT=tempfile.mkdtemp(),
 )
 class AuthSmokeTests(TestCase):
+    def test_register_page_renders_auth_shell(self):
+        response = self.client.get(reverse('register'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'fl-auth-grid')
+        self.assertContains(response, 'Create account')
+
     def test_register_creates_user_and_profile(self):
         response = self.client.post(reverse('register'), {
             'username': 'newuser',
@@ -55,6 +67,54 @@ class AuthSmokeTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_profile_totals_are_not_capped_by_recent_lists(self):
+        user = User.objects.create_user('statsuser', 'stats@example.com', 'Str0ngPass!234')
+        self.client.force_login(user)
+        workout_plan = WorkoutPlan.objects.create(user=user)
+        meal_plan = MealPlan.objects.create(user=user)
+        today = date.today()
+
+        for index in range(9):
+            day = today - timedelta(days=index)
+            WorkoutPlanner.objects.create(
+                user=user,
+                workout_plan=workout_plan,
+                date=day,
+                week_start=day,
+                day_of_week='Mon',
+                title=f'Workout {index}',
+                exercises='Squat',
+            )
+            MealPlanner.objects.create(
+                user=user,
+                meal_plan=meal_plan,
+                date=day,
+                week_start=day,
+                day_of_week='Mon',
+                meal_type='lunch',
+                food_items='Rice',
+            )
+            BlogPost.objects.create(author=user, title=f'Post {index}', content='Body')
+            VideoHistory.objects.create(
+                user=user,
+                video_id=f'video{index}',
+                title=f'Video {index}',
+                thumbnail_url='https://example.com/thumb.jpg',
+                channel_title='Channel',
+                duration='PT5M',
+            )
+
+        response = self.client.get(reverse('profile'))
+
+        self.assertEqual(response.context['workout_count'], 9)
+        self.assertEqual(response.context['meal_count'], 9)
+        self.assertEqual(response.context['post_count'], 9)
+        self.assertEqual(response.context['video_count'], 9)
+        self.assertEqual(len(response.context['workouts']), 7)
+        self.assertEqual(len(response.context['meals']), 7)
+        self.assertEqual(len(response.context['posts']), 5)
+        self.assertEqual(len(response.context['video_history']), 9)
+
     def test_edit_profile_renders_plain_status_pills(self):
         user = User.objects.create_user('pilluser', 'pill@example.com', 'Str0ngPass!234')
         self.client.force_login(user)
@@ -62,7 +122,7 @@ class AuthSmokeTests(TestCase):
         response = self.client.get(reverse('edit_profile'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'class="status-pills"')
+        self.assertContains(response, 'class="fl-status-pills"')
         for label in ('Run', 'Lift', 'Rest', 'Cook'):
             self.assertContains(response, label)
 

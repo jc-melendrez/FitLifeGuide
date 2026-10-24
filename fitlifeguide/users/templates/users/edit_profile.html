@@ -1,209 +1,161 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
-
-{% block title %}Edit Profile - FitLifeGuide{% endblock %}
+{% block title %}Edit profile - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="card bg-dark border-secondary">
-        <div class="card-header bg-gradient border-secondary">
-            <h4 class="card-title mb-0 text-cyan">
-                <i class="bi bi-pencil-square me-2"></i>Edit Profile
-            </h4>
-        </div>
-        <div class="card-body">
-            <form method="POST" enctype="multipart/form-data" id="profile-form">
-                {% csrf_token %}
-                
-                <!-- Cover Image Preview and Upload -->
-                <div class="cover-image-section mb-4">
-                    <label class="form-label text-cyan">Cover Image</label>
-                    <div class="position-relative mb-3" style="height: 200px; overflow: hidden; border-radius: 10px;">
-                        <img id="cover-preview" src="{{ user.profile.cover_image.url }}" 
-                             class="w-100 h-100" style="object-fit: cover;" alt="Cover Image">
-                        <div class="position-absolute top-50 start-50 translate-middle" style="display: none;" id="cover-overlay">
-                            <div class="text-center text-light p-3 rounded-3" style="background: rgba(0,0,0,0.7);">
-                                <i class="bi bi-cloud-upload fs-1"></i>
-                                <p class="mb-0">Click to change cover image</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        {{ p_form.cover_image }}
-                    </div>
-                </div>
-
-                <!-- Profile Picture Preview and Upload -->
-                <div class="avatar-section text-center mb-4">
-                    <label class="form-label text-cyan">Profile Picture</label>
-                    <div class="position-relative d-inline-block mb-3">
-                        <div class="rounded-circle overflow-hidden" style="width: 150px; height: 150px;">
-                            <img id="avatar-preview" src="{{ user.profile.avatar.url }}" 
-                                 class="w-100 h-100" style="object-fit: cover;" alt="Profile Picture">
-                        </div>
-                        <div class="position-absolute top-50 start-50 translate-middle" style="display: none;" id="avatar-overlay">
-                            <div class="text-center text-light p-2 rounded-circle" style="background: rgba(0,0,0,0.7);">
-                                <i class="bi bi-camera fs-3"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        {{ p_form.avatar }}
-                    </div>
-                </div>
-
-                <!-- User Information -->
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-cyan">Username</label>
-                        {{ u_form.username }}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-cyan">Email</label>
-                        {{ u_form.email }}
-                    </div>
-                </div>
-
-                <!-- Profile Information -->
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-cyan">Location</label>
-                        {{ p_form.location }}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-cyan">Birth Date</label>
-                        {{ p_form.birth_date }}
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-cyan">Bio</label>
-                    {{ p_form.bio }}
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label text-cyan">Status</label>
-                    <div class="status-pills">
-                        {% for radio in p_form.status %}
-                        <label class="status-pill" for="{{ radio.id_for_label }}">
-                            {{ radio.tag }}
-                            <span>{{ radio.choice_label }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                    {{ p_form.status.errors }}
-                </div>
-
-                <div class="text-end">
-                    <a href="{% url 'profile' %}" class="btn btn-outline-secondary me-2">Cancel</a>
-                    <button type="submit" class="btn btn-cyan">Save Changes</button>
-                </div>
-            </form>
-        </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">Profile</div>
+        <h1 class="fl-h fl-page-title">Edit <span class="fl-lime">profile.</span></h1>
     </div>
+    <a class="fl-pill" href="{% url 'profile' %}">Cancel</a>
+</div>
+
+<div class="fl-edit-grid">
+    <form method="post" enctype="multipart/form-data" class="fl-card fl-form" id="profile-form">
+        {% csrf_token %}
+
+        {% if u_form.non_field_errors or p_form.non_field_errors %}
+        <div class="fl-alert fl-alert-error">
+            {{ u_form.non_field_errors }}
+            {{ p_form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="fl-field">
+            <div class="fl-label">Avatar</div>
+            <div class="fl-upload-row">
+                <img id="avatar-preview" class="fl-avatar fl-avatar-sm" src="{{ user.profile.avatar.url }}" alt="Avatar preview">
+                <label class="fl-btn fl-btn-secondary" for="{{ p_form.avatar.id_for_label }}">Upload avatar</label>
+                {{ p_form.avatar }}
+            </div>
+            {{ p_form.avatar.errors }}
+        </div>
+
+        <div class="fl-field">
+            <div class="fl-label">Cover photo</div>
+            <div class="fl-cover-upload">
+                <img id="cover-preview" src="{{ user.profile.cover_image.url }}" alt="Cover preview" onerror="this.style.display='none'">
+            </div>
+            <div>
+                <label class="fl-btn fl-btn-secondary" for="{{ p_form.cover_image.id_for_label }}">Upload cover</label>
+            </div>
+            {{ p_form.cover_image }}
+            {{ p_form.cover_image.errors }}
+        </div>
+
+        <div class="fl-grid-2">
+            <div class="fl-field">
+                <label class="fl-label" for="{{ u_form.username.id_for_label }}">Username</label>
+                {{ u_form.username }}
+                {{ u_form.username.errors }}
+            </div>
+            <div class="fl-field">
+                <label class="fl-label" for="{{ u_form.email.id_for_label }}">Email</label>
+                {{ u_form.email }}
+                {{ u_form.email.errors }}
+            </div>
+        </div>
+
+        <div class="fl-grid-2">
+            <div class="fl-field">
+                <label class="fl-label" for="{{ p_form.location.id_for_label }}">Location</label>
+                {{ p_form.location }}
+                {{ p_form.location.errors }}
+            </div>
+            <div class="fl-field">
+                <label class="fl-label" for="{{ p_form.birth_date.id_for_label }}">Birth date</label>
+                {{ p_form.birth_date }}
+                {{ p_form.birth_date.errors }}
+            </div>
+        </div>
+
+        <div class="fl-field">
+            <label class="fl-label" for="{{ p_form.bio.id_for_label }}">Bio</label>
+            {{ p_form.bio }}
+            {{ p_form.bio.errors }}
+        </div>
+
+        <div class="fl-field">
+            <div class="fl-label">Status</div>
+            <div class="fl-status-pills">
+                {% for radio in p_form.status %}
+                <label class="fl-status-pill" for="{{ radio.id_for_label }}">
+                    {{ radio.tag }}
+                    <span>{{ radio.choice_label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            {{ p_form.status.errors }}
+        </div>
+
+        <div class="fl-form-actions">
+            <button type="submit" class="fl-btn">Save changes</button>
+            <a class="fl-btn fl-btn-secondary" href="{% url 'profile' %}">Cancel</a>
+        </div>
+    </form>
+
+    <aside class="fl-card fl-card-highlight fl-edit-preview">
+        <div class="fl-label fl-lime">Live preview</div>
+        <div class="fl-preview-head">
+            <img id="preview-avatar" class="fl-avatar fl-avatar-sm" src="{{ user.profile.avatar.url }}" alt="">
+            <div>
+                <div class="fl-h" id="preview-name">{{ user.username }}</div>
+                <div class="fl-label" id="preview-location">{% if user.profile.location %}{{ user.profile.location }}{% else %}No location{% endif %}</div>
+            </div>
+        </div>
+        <div class="fl-preview-bio" id="preview-bio">{% if user.profile.bio %}{{ user.profile.bio }}{% else %}Your bio will appear here.{% endif %}</div>
+        <span class="fl-pill fl-pill-on" id="preview-status">Status: {{ user.profile.get_status_display }}</span>
+    </aside>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Function to handle image preview
-    function setupImagePreview(inputId, previewId, overlayId) {
+document.addEventListener('DOMContentLoaded', function () {
+    function setupImagePreview(inputId, previewIds) {
         const input = document.getElementById(inputId);
-        const preview = document.getElementById(previewId);
-        const overlay = document.getElementById(overlayId);
-        const previewContainer = preview.parentElement;
+        if (!input) return;
 
-        // Show overlay on hover
-        previewContainer.addEventListener('mouseenter', () => {
-            overlay.style.display = 'block';
-        });
+        input.addEventListener('change', function () {
+            if (!this.files || !this.files[0]) return;
 
-        previewContainer.addEventListener('mouseleave', () => {
-            overlay.style.display = 'none';
-        });
-
-        // Handle click on preview
-        previewContainer.addEventListener('click', () => {
-            input.click();
-        });
-
-        // Handle file selection
-        input.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                }
-                reader.readAsDataURL(this.files[0]);
-            }
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                previewIds.forEach(function (id) {
+                    const preview = document.getElementById(id);
+                    if (preview) {
+                        preview.style.display = '';
+                        preview.src = event.target.result;
+                    }
+                });
+            };
+            reader.readAsDataURL(this.files[0]);
         });
     }
 
-    // Setup preview for both avatar and cover image
-    setupImagePreview('id_avatar', 'avatar-preview', 'avatar-overlay');
-    setupImagePreview('id_cover_image', 'cover-preview', 'cover-overlay');
+    function syncText(inputId, previewId, fallback) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        if (!input || !preview) return;
+
+        input.addEventListener('input', function () {
+            preview.textContent = this.value.trim() || fallback;
+        });
+    }
+
+    setupImagePreview('id_avatar', ['avatar-preview', 'preview-avatar']);
+    setupImagePreview('id_cover_image', ['cover-preview']);
+    syncText('id_username', 'preview-name', 'Username');
+    syncText('id_location', 'preview-location', 'No location');
+    syncText('id_bio', 'preview-bio', 'Your bio will appear here.');
+
+    document.querySelectorAll('input[name="status"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            const label = this.nextElementSibling;
+            const preview = document.getElementById('preview-status');
+            if (label && preview) preview.textContent = 'Status: ' + label.textContent.trim();
+        });
+    });
 });
 </script>
-
-<style>
-.cover-image-section, .avatar-section {
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.cover-image-section:hover, .avatar-section:hover {
-    opacity: 0.9;
-}
-
-#id_avatar, #id_cover_image {
-    display: none;
-}
-
-.btn-cyan {
-    background-color: #0dcaf0;
-    border-color: #0dcaf0;
-    color: #000;
-}
-
-.btn-cyan:hover {
-    background-color: #0bacce;
-    border-color: #0bacce;
-    color: #000;
-}
-
-.status-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.status-pill {
-    position: relative;
-    cursor: pointer;
-}
-
-.status-pill input {
-    position: absolute;
-    opacity: 0;
-}
-
-.status-pill span {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border: 1px solid #0dcaf0;
-    border-radius: 999px;
-    color: #0dcaf0;
-}
-
-.status-pill input:checked + span {
-    background-color: #0dcaf0;
-    color: #000;
-}
-
-.status-pill input:focus-visible + span {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
-}
-</style>
-{% endblock %} 
+{% endblock %}
