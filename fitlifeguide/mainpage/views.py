@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect
 from django.db.models import Q
 from community.models import BlogPost
 from tools.models import WorkoutPlanner
-from store.models import Equipment
 from videos.views import videos_views
 
 def home(request):
@@ -21,13 +20,6 @@ def home(request):
             Q(exercises__icontains=query)
         ).order_by('-date')[:5]
 
-        # Search in equipment
-        equipment = Equipment.objects.filter(
-            Q(name__icontains=query) |
-            Q(description__icontains=query),
-            available=True
-        )[:6]
-
         # Get video results
         videos = videos_views(request, search_query=query, max_results=6)
 
@@ -35,7 +27,6 @@ def home(request):
             'query': query,
             'posts': posts,
             'workouts': workouts,
-            'equipment': equipment,
             'videos': videos,
         })
 

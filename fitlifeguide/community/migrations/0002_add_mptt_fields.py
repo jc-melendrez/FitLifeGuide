@@ -7,6 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('community', '0001_initial'),
+        ('community', '0003_blogpost_likes_forumpost_likes_thread_likes_and_more'),
     ]
 
     operations = [
