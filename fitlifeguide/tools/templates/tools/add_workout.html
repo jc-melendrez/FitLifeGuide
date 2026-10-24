@@ -15,12 +15,13 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
+                        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
                         {{ form|crispy }}
                         <div class="mt-4">
                             <button type="submit" class="btn btn-cyan">
                                 <i class="fas fa-save"></i> Save Workout
                             </button>
-                            <a href="{% url 'tools:workout_hub' %}" class="btn btn-outline-secondary">
+                            <a href="{% if next %}{{ next }}{% else %}{% url 'tools:workout_hub' %}{% endif %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                         </div>

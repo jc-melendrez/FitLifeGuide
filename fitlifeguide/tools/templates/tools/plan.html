@@ -1,0 +1,100 @@
+{% extends 'mainpage/base.html' %}
+{% block title %}Plan - FitLifeGuide{% endblock %}
+
+{% block content %}
+<div class="fl-plan">
+    <div class="fl-plan-head">
+        <div>
+            <div class="fl-label">Week {{ week_number }}</div>
+            <h1 class="fl-h fl-plan-title">Your <span class="fl-lime">week</span></h1>
+            <p class="fl-muted fl-plan-subtitle">Meals and workouts in one place.</p>
+        </div>
+
+        <div class="fl-plan-actions">
+            <div class="fl-seg" aria-label="Plan view">
+                <a class="{% if view == 'both' %}is-on{% endif %}" href="?week={{ week_start|date:'Y-m-d' }}&amp;view=both">Both</a>
+                <a class="{% if view == 'meals' %}is-on{% endif %}" href="?week={{ week_start|date:'Y-m-d' }}&amp;view=meals">Meals</a>
+                <a class="{% if view == 'workouts' %}is-on{% endif %}" href="?week={{ week_start|date:'Y-m-d' }}&amp;view=workouts">Workouts</a>
+            </div>
+
+            <div class="fl-weeknav">
+                <a href="?week={{ prev_week|date:'Y-m-d' }}&amp;view={{ view }}" aria-label="Previous week">&lsaquo;</a>
+                <span>{{ week_start|date:"M j" }} - {{ week_end|date:"M j" }}</span>
+                <a href="?week={{ next_week|date:'Y-m-d' }}&amp;view={{ view }}" aria-label="Next week">&rsaquo;</a>
+            </div>
+
+            <form method="post" action="{% url 'tools:copy_last_week' %}">
+                {% csrf_token %}
+                <input type="hidden" name="week" value="{{ week_start|date:'Y-m-d' }}">
+                <button class="fl-btn fl-btn-secondary" type="submit" onclick="return confirm('Copy last week into this week? Existing entries are kept.')">Copy last week</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="fl-plan-days">
+        {% for day in days %}
+            <section class="fl-card fl-plan-day{% if day.is_today %} is-today{% endif %}{% if day.status == 'Done' %} is-done{% endif %}{% if day.status == 'Rest' %} is-rest{% endif %}">
+                <div class="fl-plan-day-head">
+                    <div>
+                        <span class="fl-label">{{ day.label }}</span>
+                        <span class="fl-plan-date">{{ day.date|date:"j" }}</span>
+                    </div>
+                    <span class="fl-pill{% if day.is_today or day.status == 'Done' %} fl-pill-on{% endif %}">{{ day.status }}</span>
+                </div>
+
+                {% if view != 'meals' %}
+                    <div class="fl-plan-section">
+                        <div class="fl-label">Workout</div>
+                        {% if day.workout %}
+                            <div class="fl-plan-entry">
+                                <a class="fl-plan-entry-title" href="{% url 'tools:edit_workout' day.workout.id %}?next={{ request.get_full_path|urlencode }}">{{ day.workout.title }}</a>
+                                <span class="fl-muted">{% if day.workout.duration_minutes %}{{ day.workout.duration_minutes }}{% else %}--{% endif %} min</span>
+                                <span class="fl-pill">{{ day.workout.get_status_display }}</span>
+                            </div>
+                        {% else %}
+                            <a class="fl-plan-add" href="{% url 'tools:add_workout' %}?date={{ day.date|date:'Y-m-d' }}&amp;next={{ request.get_full_path|urlencode }}">+ Add workout</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if view != 'workouts' %}
+                    <div class="fl-plan-section">
+                        <div class="fl-label">Meals</div>
+                        {% for row in day.meals %}
+                            <div class="fl-plan-meal">
+                                <div class="fl-plan-meal-top">
+                                    <span class="fl-plan-meal-label">{{ row.label }}</span>
+                                    {% if row.meal %}
+                                        <span class="fl-pill{% if row.meal.status == 'eaten' %} fl-pill-on{% endif %}">{{ row.meal.get_status_display }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if row.meal %}
+                                    <a class="fl-plan-meal-food" href="{% url 'tools:edit_meal' row.meal.id %}?next={{ request.get_full_path|urlencode }}">{{ row.meal.food_items|truncatewords:4 }}</a>
+                                {% else %}
+                                    <a class="fl-plan-add" href="{% url 'tools:add_meal' %}?date={{ day.date|date:'Y-m-d' }}&amp;meal_type={{ row.type }}&amp;next={{ request.get_full_path|urlencode }}">+ Add</a>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+
+    <section class="fl-card fl-plan-ideas">
+        <div class="fl-label">Ideas from the community</div>
+        {% if community_meals or community_workouts %}
+            <div class="fl-pill-row">
+                {% for meal in community_meals %}
+                    <span class="fl-pill">Meal &middot; {{ meal.food_items|truncatewords:3 }} &middot; {{ meal.user.username }}</span>
+                {% endfor %}
+                {% for workout in community_workouts %}
+                    <span class="fl-pill">Workout &middot; {{ workout.title|truncatewords:3 }} &middot; {{ workout.user.username }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="fl-muted">No community ideas yet.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

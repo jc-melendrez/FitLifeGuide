@@ -1,12 +1,53 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from datetime import datetime, timedelta
 from .models import MealPlan, MealPlanner, WeekDay, WorkoutPlan, WorkoutPlanner
 from .forms import MealPlannerForm, WorkoutPlanForm
+from .plan import copy_previous_week, get_plan_context, parse_week
 
 # Create your views here.
+
+
+def _next_url(request):
+    next_url = request.GET.get('next') or request.POST.get('next')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        {request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return None
+
+
+@login_required
+def plan(request):
+    week_start = parse_week(request.GET.get('week'))
+    view = request.GET.get('view', 'both')
+    return render(
+        request,
+        'tools/plan.html',
+        get_plan_context(request.user, week_start, view),
+    )
+
+
+@login_required
+@require_POST
+def copy_last_week(request):
+    week_start = parse_week(request.POST.get('week'))
+    copied_meals, copied_workouts = copy_previous_week(request.user, week_start)
+    if copied_meals or copied_workouts:
+        messages.success(
+            request,
+            f'Copied meals: {copied_meals}, workouts: {copied_workouts}.',
+        )
+    else:
+        messages.info(request, 'Nothing new to copy from last week.')
+    return redirect(f"{reverse('tools:plan')}?week={week_start:%Y-%m-%d}")
 
 @login_required
 def meal_planner(request):
@@ -86,52 +127,58 @@ def add_meal(request, date=None, meal_type=None):
     except ValueError:
         messages.error(request, 'Invalid date format.')
         return redirect('tools:meal_planner')
-    
+
+    next_url = _next_url(request)
+
     if request.method == 'POST':
         form = MealPlannerForm(request.POST)
         if form.is_valid():
             meal = form.save(commit=False)
             meal.user = request.user
-            meal.meal_plan = MealPlan.objects.get(user=request.user)
+            meal_plan, _ = MealPlan.objects.get_or_create(user=request.user)
+            meal.meal_plan = meal_plan
             meal.date = meal_date
             meal.meal_type = meal_type
             meal.week_start = meal_date - timedelta(days=meal_date.weekday())
             meal.day_of_week = WeekDay.choices[meal_date.weekday()][0]
             meal.save()
             messages.success(request, 'Meal added successfully!')
-            return redirect('tools:meal_planner')
+            return redirect(next_url or 'tools:meal_planner')
     else:
         form = MealPlannerForm()
-    
+
     context = {
         'form': form,
         'date': meal_date,
         'day_name': day_name,
         'meal_type': meal_type.title(),
+        'next': next_url or '',
     }
-    
-    return render(request, 'tools/add_meal.html', {'form': form, 'date': meal_date, 'day_name': day_name, 'meal_type': meal_type.title()})
+
+    return render(request, 'tools/add_meal.html', context)
 
 @login_required
 def edit_meal(request, meal_id):
     meal = get_object_or_404(MealPlanner, id=meal_id, user=request.user)
     day_name = WeekDay.choices[meal.date.weekday()][1]
-    
+    next_url = _next_url(request)
+
     if request.method == 'POST':
         form = MealPlannerForm(request.POST, instance=meal)
         if form.is_valid():
             form.save()
             messages.success(request, 'Meal updated successfully!')
-            return redirect('tools:meal_planner')
+            return redirect(next_url or 'tools:meal_planner')
     else:
         form = MealPlannerForm(instance=meal)
-    
+
     return render(request, 'tools/add_meal.html', {
-        'form': form, 
+        'form': form,
         'meal': meal,
         'date': meal.date,
         'day_name': day_name,
-        'meal_type': meal.meal_type.title()
+        'meal_type': meal.meal_type.title(),
+        'next': next_url or '',
     })
 
 @login_required
@@ -224,34 +271,39 @@ def add_workout(request):
     else:
         selected_date = timezone.now().date()
 
+    next_url = _next_url(request)
+
     if request.method == 'POST':
         form = WorkoutPlanForm(request.POST)
         if form.is_valid():
             workout = form.save(commit=False)
             workout.user = request.user
-            workout.workout_plan = WorkoutPlan.objects.get(user=request.user)
-            
+            workout_plan, _ = WorkoutPlan.objects.get_or_create(user=request.user)
+            workout.workout_plan = workout_plan
+
             # Use the selected date to set week_start and day_of_week
             workout_date = form.cleaned_data['date']
             workout.date = workout_date
             workout.week_start = workout_date - timedelta(days=workout_date.weekday())
             workout.day_of_week = WeekDay.choices[workout_date.weekday()][0]
-            
+
             workout.save()
             messages.success(request, 'Workout added successfully!')
-            return redirect('tools:workout_hub')
+            return redirect(next_url or 'tools:workout_hub')
     else:
         form = WorkoutPlanForm(initial={'date': selected_date})
-    
+
     return render(request, 'tools/add_workout.html', {
         'form': form,
-        'selected_date': selected_date
+        'selected_date': selected_date,
+        'next': next_url or '',
     })
 
 @login_required
 def edit_workout(request, workout_id):
     workout = get_object_or_404(WorkoutPlanner, id=workout_id, user=request.user)
-    
+    next_url = _next_url(request)
+
     if request.method == 'POST':
         form = WorkoutPlanForm(request.POST, instance=workout)
         if form.is_valid():
@@ -262,13 +314,14 @@ def edit_workout(request, workout_id):
             workout.day_of_week = WeekDay.choices[workout_date.weekday()][0]
             workout.save()
             messages.success(request, 'Workout updated successfully!')
-            return redirect('tools:workout_hub')
+            return redirect(next_url or 'tools:workout_hub')
     else:
         form = WorkoutPlanForm(instance=workout)
-    
+
     return render(request, 'tools/edit_workout.html', {
         'form': form,
-        'workout': workout
+        'workout': workout,
+        'next': next_url or '',
     })
 
 @login_required

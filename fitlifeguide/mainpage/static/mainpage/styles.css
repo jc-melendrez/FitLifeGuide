@@ -1643,3 +1643,312 @@ body.fl-auth-body {
   }
 }
 
+.fl-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fl-plan-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fl-plan-title {
+  margin-top: 6px;
+  font-size: clamp(2.6rem, 6vw, 4rem);
+}
+
+.fl-plan-subtitle {
+  margin-top: 6px;
+  font-size: 0.9rem;
+}
+
+.fl-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.fl-plan-actions form {
+  margin: 0;
+}
+
+.fl-seg {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--fl-line);
+  border-radius: 999px;
+  background: var(--fl-card);
+}
+
+.fl-seg a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--fl-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fl-seg a:hover {
+  color: var(--fl-text);
+}
+
+.fl-seg a.is-on {
+  background: var(--fl-lime);
+  color: var(--fl-ink);
+}
+
+.fl-weeknav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--fl-line);
+  border-radius: 999px;
+  background: var(--fl-card);
+}
+
+.fl-weeknav a {
+  padding: 0 4px;
+  color: var(--fl-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.fl-weeknav a:hover {
+  color: var(--fl-lime);
+}
+
+.fl-weeknav span {
+  color: var(--fl-text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fl-plan-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fl-plan-day {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 320px;
+  padding: 14px;
+}
+
+.fl-plan-day.is-done {
+  border-color: rgba(198, 255, 61, 0.35);
+}
+
+.fl-plan-day.is-rest {
+  background: #121214;
+}
+
+.fl-plan-day.is-today {
+  border-color: var(--fl-lime);
+  background: linear-gradient(180deg, var(--fl-card), #1b2410);
+}
+
+.fl-plan-day-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.fl-plan-date {
+  display: block;
+  margin-top: 2px;
+  color: var(--fl-text);
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fl-plan-day.is-today .fl-plan-date {
+  color: var(--fl-lime);
+}
+
+.fl-plan-day-head .fl-pill {
+  padding: 5px 9px;
+  font-size: 0.65rem;
+}
+
+.fl-plan-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fl-plan-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: var(--fl-card-2);
+}
+
+.fl-plan-entry-title {
+  color: var(--fl-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.fl-plan-entry-title:hover {
+  color: var(--fl-lime);
+}
+
+.fl-plan-entry .fl-muted {
+  font-size: 0.7rem;
+}
+
+.fl-plan-entry .fl-pill {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 0.62rem;
+}
+
+.fl-plan-meal {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--fl-line);
+}
+
+.fl-plan-meal:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.fl-plan-meal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.fl-plan-meal-label {
+  color: var(--fl-muted);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fl-plan-meal .fl-pill {
+  padding: 3px 7px;
+  font-size: 0.6rem;
+}
+
+.fl-plan-meal-food {
+  overflow: hidden;
+  color: var(--fl-text);
+  font-size: 0.75rem;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-plan-meal-food:hover {
+  color: var(--fl-lime);
+}
+
+.fl-plan-add {
+  color: var(--fl-lime);
+  font-size: 0.72rem;
+  text-decoration: none;
+}
+
+.fl-plan-add:hover {
+  text-decoration: underline;
+}
+
+.fl-plan-ideas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.fl-plan-ideas .fl-pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1100px) {
+  .fl-plan-days {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .fl-plan-head {
+    align-items: flex-start;
+  }
+
+  .fl-plan-actions {
+    width: 100%;
+  }
+
+  .fl-plan-days {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fl-plan-day {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .fl-plan-title {
+    font-size: 2.8rem;
+  }
+
+  .fl-plan-days {
+    grid-template-columns: 1fr;
+  }
+
+  .fl-plan-actions {
+    gap: 8px;
+  }
+
+  .fl-seg {
+    width: 100%;
+  }
+
+  .fl-seg a {
+    flex: 1;
+    text-align: center;
+  }
+
+  .fl-weeknav {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .fl-plan-actions form,
+  .fl-plan-actions .fl-btn {
+    width: 100%;
+  }
+}
+

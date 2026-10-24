@@ -72,7 +72,7 @@
     {% if user.is_authenticated %}
     <nav class="fl-dock" aria-label="App navigation">
         <a href="{% url 'home' %}" class="{% if request.path == '/' or '/home/' in request.path %}is-on{% endif %}">Today</a>
-        <a href="{% url 'tools:meal_planner' %}" class="{% if '/meal-planner/' in request.path or '/workout-hub/' in request.path or '/add-workout/' in request.path or '/edit-workout/' in request.path %}is-on{% endif %}">Plan</a>
+        <a href="{% url 'tools:plan' %}" class="{% if '/plan/' in request.path or '/meal-planner/' in request.path or '/workout-hub/' in request.path or '/add-workout/' in request.path or '/edit-workout/' in request.path %}is-on{% endif %}">Plan</a>
         <a href="{% url 'videos' %}" class="{% if '/videos/' in request.path or '/video/' in request.path %}is-on{% endif %}">Videos</a>
         <a href="{% url 'posts' %}" class="{% if '/posts/' in request.path or '/forum/' in request.path or '/thread/' in request.path %}is-on{% endif %}">Community</a>
         <a href="{% url 'profile' %}" class="{% if '/profile/' in request.path %}is-on{% endif %}">Me</a>

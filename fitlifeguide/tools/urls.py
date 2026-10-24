@@ -4,6 +4,8 @@ from . import views
 app_name = 'tools'
 
 urlpatterns = [
+    path('plan/', views.plan, name='plan'),
+    path('plan/copy-last-week/', views.copy_last_week, name='copy_last_week'),
     path('meal-planner/', views.meal_planner, name='meal_planner'),
     path('meal-planner/add/', views.add_meal, name='add_meal'),
     path('meal-planner/edit/<int:meal_id>/', views.edit_meal, name='edit_meal'),

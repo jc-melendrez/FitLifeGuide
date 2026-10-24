@@ -16,6 +16,7 @@
                 <div class="card-body px-4">
                     <form method="post">
                         {% csrf_token %}
+                        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
                         {% for field in form %}
                             <div class="form-group mb-3">
                                 <label for="{{ field.id_for_label }}" class="text-aqua">{{ field.label }}</label>
@@ -32,7 +33,7 @@
                         {% endfor %}
                         <div class="form-group mt-4">
                             <button type="submit" class="btn btn-cyan">Save Meal</button>
-                            <a href="{% url 'tools:meal_planner' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                            <a href="{% if next %}{{ next }}{% else %}{% url 'tools:meal_planner' %}{% endif %}" class="btn btn-outline-secondary ms-2">Cancel</a>
                         </div>
                     </form>
                 </div>
