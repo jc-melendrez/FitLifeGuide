@@ -12,7 +12,7 @@ from videos.models import VideoHistory
 from .models import Profile, EmailOTP
 from django.http import JsonResponse
 from django.urls import reverse
-from django.core.mail import send_mail
+import logging
 import secrets
 from django.conf import settings
 from django.utils import timezone
@@ -21,6 +21,8 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 
 from .forms import OTPForm
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -99,27 +101,23 @@ def profile(request):
 
 
 
-from django.shortcuts import redirect
-from django.core.mail import send_mail
-from django.contrib.auth.views import LoginView
-
 def send_otp_email(user, otp):
     """Helper function to send OTP email with HTML template"""
     context = {
         'user': user,
         'otp': otp
     }
-    
+
     # Render HTML content
     html_content = render_to_string('users/otp_email.html', context)
     # Create plain text content (fallback)
     text_content = f'Your OTP for FitLifeGuide login is: {otp}\nThis code will expire in 5 minutes.'
-    
+
     # Create email
     subject = 'Your FitLifeGuide Login Code'
-    from_email = 'noreply@fitlifeguide.com'
+    from_email = settings.DEFAULT_FROM_EMAIL
     to_email = user.email
-    
+
     msg = EmailMultiAlternatives(subject, text_content, from_email, [to_email])
     msg.attach_alternative(html_content, "text/html")
     msg.send()
@@ -145,7 +143,12 @@ class CustomLoginView(LoginView):
         )
 
         # Send OTP email using the new template
-        send_otp_email(user, otp)
+        try:
+            send_otp_email(user, otp)
+        except Exception:
+            logger.exception("OTP email failed for %s", user.email)
+            messages.error(self.request, "Could not send the login code. Please try again later.")
+            return redirect('login')
 
         return redirect('verify_otp')
 
@@ -191,13 +194,13 @@ def verify_otp(request):
 def resend_otp(request):
     if request.method != 'POST':
         return HttpResponseBadRequest('Invalid request method')
-    
+
     user_id = request.session.get('pre_2fa_user_id')
     if not user_id:
         return HttpResponseBadRequest('No pending OTP verification')
-    
+
     user = User.objects.get(id=user_id)
-    
+
     # Generate new OTP
     otp = str(secrets.randbelow(900000) + 100000)
     EmailOTP.objects.update_or_create(
@@ -206,8 +209,12 @@ def resend_otp(request):
     )
 
     # Send OTP email using the new template
-    send_otp_email(user, otp)
-    
+    try:
+        send_otp_email(user, otp)
+    except Exception:
+        logger.exception("Resend OTP failed for %s", user.email)
+        return JsonResponse({'message': 'Could not send a new code'}, status=502)
+
     return JsonResponse({'message': 'New OTP sent successfully'})
 
 @login_required

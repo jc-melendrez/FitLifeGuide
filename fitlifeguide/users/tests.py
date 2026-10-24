@@ -40,6 +40,21 @@ class AuthSmokeTests(TestCase):
         self.assertTrue(Profile.objects.filter(user=user).exists())
         self.assertEqual(len(mail.outbox), 1)
 
+    def test_register_succeeds_when_welcome_email_fails(self):
+        from unittest.mock import patch
+        with patch('users.models.EmailMultiAlternatives.send', side_effect=Exception('smtp down')):
+            response = self.client.post(reverse('register'), {
+                'username': 'mailfail',
+                'email': 'mailfail@example.com',
+                'password1': 'Str0ngPass!234',
+                'password2': 'Str0ngPass!234',
+            })
+
+        self.assertRedirects(response, reverse('login'))
+        user = User.objects.get(username='mailfail')
+        self.assertTrue(Profile.objects.filter(user=user).exists())
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_login_requires_and_accepts_otp(self):
         user = User.objects.create_user('otpuser', 'otp@example.com', 'Str0ngPass!234')
         mail.outbox.clear()
