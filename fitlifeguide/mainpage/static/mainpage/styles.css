@@ -1095,6 +1095,206 @@ a.fl-activity-row:hover strong {
   margin-top: 16px;
 }
 
+.fl-today {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fl-today-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fl-today-title {
+  margin-top: 6px;
+  font-size: clamp(2.4rem, 5vw, 3.5rem);
+}
+
+.fl-today-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  background: linear-gradient(135deg, var(--fl-card), #1b2410);
+}
+
+.fl-today-session {
+  flex: 1 1 320px;
+}
+
+.fl-today-workout {
+  margin: 10px 0;
+  font-size: clamp(2.8rem, 7vw, 4.5rem);
+}
+
+.fl-today-status {
+  margin-top: 10px;
+  font-size: 0.8rem;
+}
+
+.fl-today-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 180px;
+  height: 180px;
+}
+
+.fl-today-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.fl-today-ring circle {
+  fill: none;
+  stroke-width: 8;
+}
+
+.fl-ring-track {
+  stroke: var(--fl-line);
+}
+
+.fl-ring-progress {
+  stroke: var(--fl-lime);
+  stroke-linecap: round;
+}
+
+.fl-ring-progress.is-empty {
+  stroke: transparent;
+}
+
+.fl-today-ring-copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.fl-today-ring-copy .fl-h {
+  font-size: 2.4rem;
+}
+
+.fl-ribbon {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.fl-ribbon-day {
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid var(--fl-line);
+  border-radius: 14px;
+  background: var(--fl-card);
+}
+
+.fl-ribbon-day.is-today {
+  border-color: var(--fl-lime);
+}
+
+.fl-ribbon-day.has-workout {
+  background: var(--fl-card-2);
+}
+
+.fl-ribbon-day.is-done .fl-ribbon-title {
+  color: var(--fl-lime);
+}
+
+.fl-ribbon-title {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--fl-muted);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-ribbon-day.is-today .fl-ribbon-title {
+  color: var(--fl-text);
+}
+
+.fl-today-grid {
+  margin-top: 0;
+}
+
+.fl-today-meals {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.fl-today-meal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--fl-line);
+}
+
+.fl-today-meal:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.fl-today-meal-label {
+  display: block;
+  color: var(--fl-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fl-today-meal-label:hover {
+  color: var(--fl-lime);
+}
+
+.fl-today-meal .fl-muted {
+  font-size: 0.8rem;
+}
+
+.fl-today-video {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--fl-text);
+  text-decoration: none;
+}
+
+.fl-today-video img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--fl-line);
+  border-radius: 14px;
+}
+
+.fl-today-video strong {
+  font-size: 0.95rem;
+}
+
+.fl-today-video:hover strong {
+  color: var(--fl-lime);
+}
+
+.fl-today-empty {
+  margin-top: 14px;
+}
+
 .fl-edit-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.8fr);
@@ -1388,6 +1588,58 @@ body.fl-auth-body {
 
   .fl-otp-demo {
     gap: 5px;
+  }
+}
+
+@media (max-width: 760px) {
+  .fl-ribbon {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .fl-ribbon-day {
+    flex: 0 0 92px;
+  }
+
+  .fl-today-hero {
+    flex-wrap: nowrap;
+    gap: 16px;
+  }
+
+  .fl-today-session {
+    min-width: 0;
+  }
+
+  .fl-today-ring {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fl-today-hero {
+    gap: 12px;
+  }
+
+  .fl-today-workout {
+    font-size: 2.4rem;
+  }
+
+  .fl-today-ring {
+    flex: 0 0 120px;
+    width: 120px;
+    height: 120px;
+    margin: 0;
+  }
+
+  .fl-today-ring-copy .fl-h {
+    font-size: 1.8rem;
+  }
+
+  .fl-today-meal {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

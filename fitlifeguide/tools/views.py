@@ -289,3 +289,18 @@ def update_workout_status(request, workout_id):
             workout.save()
             messages.success(request, f'Workout marked as {status}!')
     return redirect('tools:workout_hub')
+
+
+@login_required
+def skip_today(request):
+    if request.method == 'POST':
+        updated = WorkoutPlanner.objects.filter(
+            user=request.user,
+            date=timezone.localdate(),
+            status='planned',
+        ).update(status='missed')
+        if updated:
+            messages.success(request, 'Today marked as missed.')
+        else:
+            messages.info(request, 'No planned workout for today.')
+    return redirect('home')

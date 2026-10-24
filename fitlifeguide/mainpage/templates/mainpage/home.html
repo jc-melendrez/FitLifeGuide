@@ -1,49 +1,104 @@
 {% extends 'mainpage/base.html' %}
-{% block title %}Home - FitLifeGuide{% endblock %}
+{% block title %}Today - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container px-3 py-4 text-white">
-  <!-- Center content with max width and auto margins -->
-  <div class="mx-auto" style="max-width: 720px;">
-    {% if user.is_authenticated %}
-      <h1 class="mb-4 text-center">Welcome Back to <span class="grad">FitLifeGuide</span>!</h1>
-    {% else %}
-      <h1 class="mb-4 text-center">Welcome to <span class="grad">FitLifeGuide</span>!</h1>
-    {% endif %}
-
-    <!-- What's New Section -->
-    <div class="mb-5">
-      <h3 class="text-success">✨ What's New</h3>
-      <ul class="list-group list-group-flush bg-dark">
-        <li class="list-group-item bg-dark text-light">New video tutorials added under the "Videos" section.</li>
-        <li class="list-group-item bg-dark text-light">Forum now supports image attachments and rich text formatting.</li>
-        <li class="list-group-item bg-dark text-light">Improved navigation bar for easier access on mobile devices.</li>
-      </ul>
+<div class="fl-today">
+    <div class="fl-today-head">
+        <div>
+            <div class="fl-label">{{ today|date:"l" }} &middot; Week {{ week_number }}</div>
+            <h1 class="fl-h fl-today-title">{{ greeting }}, {{ user.username }}</h1>
+        </div>
+        <span class="fl-pill{% if streak %} fl-pill-on{% endif %}">
+            {% if streak %}{{ streak }}-day streak{% else %}Start a streak{% endif %}
+        </span>
     </div>
 
-    <hr class="border-secondary">
+    <section class="fl-card fl-card-highlight fl-today-hero">
+        <div class="fl-today-session">
+            <div class="fl-label fl-lime">Today's session</div>
+            {% if today_workout %}
+                <h2 class="fl-h fl-today-workout">{{ today_workout.title }}</h2>
+                <p class="fl-muted">
+                    {% if today_workout.duration_minutes %}{{ today_workout.duration_minutes }}{% else %}&mdash;{% endif %} min &middot; {{ today_workout.goal|default:"No goal set" }}
+                </p>
+                <div class="fl-pill-row">
+                    <a class="fl-btn" href="{% url 'tools:workout_hub' %}">Open workout</a>
+                    {% if today_workout.status == 'planned' %}
+                        <form method="post" action="{% url 'tools:skip_today' %}">
+                            {% csrf_token %}
+                            <button class="fl-btn fl-btn-secondary" type="submit">Skip today</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <p class="fl-muted fl-today-status">Status: {{ today_workout.get_status_display }}</p>
+            {% else %}
+                <h2 class="fl-h fl-today-workout">Rest day</h2>
+                <p class="fl-muted">No session planned for today.</p>
+                <a class="fl-btn" href="{% url 'tools:add_workout' %}">Plan a workout</a>
+            {% endif %}
+        </div>
 
-    <!-- Fixes Section -->
-    <div class="mb-5">
-      <h3 class="text-warning">🛠️ Fixes & Improvements</h3>
-      <ul class="list-group list-group-flush bg-dark">
-        <li class="list-group-item bg-dark text-light">Fixed login redirect issue for authenticated users.</li>
-        <li class="list-group-item bg-dark text-light">Resolved display bugs in the profile page on smaller screens.</li>
-        <li class="list-group-item bg-dark text-light">Search bar performance enhanced for faster results.</li>
-      </ul>
+        <div class="fl-today-ring">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="fl-ring-track" cx="50" cy="50" r="42"></circle>
+                <circle class="fl-ring-progress{% if not week_workouts %} is-empty{% endif %}" cx="50" cy="50" r="42" stroke-dasharray="{{ ring_dash }}"></circle>
+            </svg>
+            <div class="fl-today-ring-copy">
+                <span class="fl-h">{{ week_workouts }}/{{ week_goal }}</span>
+                <span class="fl-label">This week</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="fl-ribbon" aria-label="This week">
+        {% for day in week_days %}
+            <div class="fl-ribbon-day{% if day.is_today %} is-today{% endif %}{% if day.workout %} has-workout{% endif %}{% if day.workout.status == 'completed' %} is-done{% endif %}">
+                <span class="fl-label">{{ day.label }}</span>
+                <span class="fl-ribbon-title">{{ day.workout.title|default:"Rest" }}</span>
+            </div>
+        {% endfor %}
     </div>
 
-    <hr class="border-secondary">
+    <div class="fl-grid-2 fl-today-grid">
+        <section class="fl-card">
+            <div class="fl-label">Meals today</div>
+            <div class="fl-today-meals">
+                {% for row in meal_rows %}
+                    <div class="fl-today-meal">
+                        <div>
+                            {% if row.meal %}
+                                <a class="fl-today-meal-label" href="{% url 'tools:edit_meal' row.meal.id %}">{{ row.label }}</a>
+                            {% else %}
+                                <span class="fl-today-meal-label">{{ row.label }}</span>
+                            {% endif %}
+                            <span class="fl-muted">{{ row.meal.food_items|default:"Not planned" }}</span>
+                        </div>
+                        {% if row.meal %}
+                            <span class="fl-pill{% if row.meal.status == 'eaten' %} fl-pill-on{% endif %}">{{ row.status }}</span>
+                        {% else %}
+                            <a class="fl-pill" href="{% url 'tools:meal_planner' %}">Plan</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            <a class="fl-muted" href="{% url 'tools:meal_planner' %}">Open meal plan</a>
+        </section>
 
-    <!-- Upcoming Features Section -->
-    <div class="mb-5">
-      <h3 class="text-info">🚀 Coming Soon</h3>
-      <ul class="list-group list-group-flush bg-dark">
-        <li class="list-group-item bg-dark text-light">Personalized fitness plan generator based on user data.</li>
-        <li class="list-group-item bg-dark text-light">Nutrition tracker with daily logs and reminders.</li>
-        <li class="list-group-item bg-dark text-light">Mobile app integration for on-the-go access.</li>
-      </ul>
+        <section class="fl-card">
+            <div class="fl-label">Resume watching</div>
+            {% if resume_video %}
+                <a class="fl-today-video" href="https://www.youtube.com/watch?v={{ resume_video.video_id }}" target="_blank" rel="noopener">
+                    {% if resume_video.thumbnail_url %}
+                        <img src="{{ resume_video.thumbnail_url }}" alt="">
+                    {% endif %}
+                    <strong>{{ resume_video.title }}</strong>
+                    <span class="fl-muted">{{ resume_video.channel_title }}</span>
+                </a>
+            {% else %}
+                <p class="fl-muted fl-today-empty">No videos watched yet.</p>
+                <a class="fl-btn fl-btn-secondary" href="{% url 'videos' %}">Browse videos</a>
+            {% endif %}
+        </section>
     </div>
-  </div>
 </div>
 {% endblock %}

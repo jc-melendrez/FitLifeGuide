@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.db.models import Q
 from django.contrib.auth.models import User
 from community.models import BlogPost
+from tools.activity import get_today_context
 from tools.models import MealPlanner, WorkoutPlanner
 from videos.views import videos_views
 
@@ -34,7 +35,10 @@ def home(request):
             'videos': videos,
         })
 
-    return render(request, 'mainpage/home.html')
+    if not request.user.is_authenticated:
+        return redirect('welcome')
+
+    return render(request, 'mainpage/home.html', get_today_context(request.user))
 
 def welcome(request):
     if request.user.is_authenticated:
