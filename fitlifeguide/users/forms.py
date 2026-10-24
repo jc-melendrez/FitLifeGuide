@@ -65,11 +65,8 @@ class ProfileUpdateForm(forms.ModelForm):
     )
     status = forms.ChoiceField(
         choices=Profile.STATUS_CHOICES,
-        required=False,
-        widget=forms.Select(attrs={
-            'class': 'form-control form-select',
-            'style': 'font-family: system-ui;'  # This ensures emojis display correctly
-        })
+        required=True,
+        widget=forms.RadioSelect,
     )
 
     class Meta:

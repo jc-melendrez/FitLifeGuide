@@ -22,16 +22,10 @@ class EmailOTP(models.Model):
 
 class Profile(models.Model):
     STATUS_CHOICES = [
-        ('💪', 'Working Out'),
-        ('🏃', 'Running'),
-        ('🧘', 'Meditating'),
-        ('🥗', 'Eating Healthy'),
-        ('😴', 'Resting'),
-        ('🎯', 'Focused'),
-        ('🌟', 'Feeling Great'),
-        ('🔋', 'Low Energy'),
-        ('🎮', 'Taking a Break'),
-        ('📚', 'Learning'),
+        ('run', 'Run'),
+        ('lift', 'Lift'),
+        ('rest', 'Rest'),
+        ('cook', 'Cook'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -40,7 +34,7 @@ class Profile(models.Model):
     birth_date = models.DateField(null=True, blank=True)
     avatar = models.ImageField(upload_to='profile_pics', default='profile_pics/default-avatar.png')
     cover_image = models.ImageField(upload_to='cover_pics', default='cover_pics/default-cover.jpg')
-    status = models.CharField(max_length=2, choices=STATUS_CHOICES, default='🌟')
+    status = models.CharField(max_length=4, choices=STATUS_CHOICES, default='rest')
     status_updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

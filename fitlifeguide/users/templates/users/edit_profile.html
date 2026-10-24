@@ -83,7 +83,15 @@
 
                 <div class="mb-4">
                     <label class="form-label text-cyan">Status</label>
-                    {{ p_form.status }}
+                    <div class="status-pills">
+                        {% for radio in p_form.status %}
+                        <label class="status-pill" for="{{ radio.id_for_label }}">
+                            {{ radio.tag }}
+                            <span>{{ radio.choice_label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {{ p_form.status.errors }}
                 </div>
 
                 <div class="text-end">
@@ -162,6 +170,40 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: #0bacce;
     border-color: #0bacce;
     color: #000;
+}
+
+.status-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.status-pill {
+    position: relative;
+    cursor: pointer;
+}
+
+.status-pill input {
+    position: absolute;
+    opacity: 0;
+}
+
+.status-pill span {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: 1px solid #0dcaf0;
+    border-radius: 999px;
+    color: #0dcaf0;
+}
+
+.status-pill input:checked + span {
+    background-color: #0dcaf0;
+    color: #000;
+}
+
+.status-pill input:focus-visible + span {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
 }
 </style>
 {% endblock %} 
