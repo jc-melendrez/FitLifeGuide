@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from datetime import datetime, timedelta
 from .models import MealPlan, MealPlanner, WeekDay, WorkoutPlan, WorkoutPlanner
 from .forms import MealPlannerForm, WorkoutPlanForm
-from .plan import copy_previous_week, get_plan_context, parse_week
+from .plan import PLAN_VIEWS, copy_previous_week, get_plan_context, parse_week
 
 # Create your views here.
 
@@ -39,15 +39,20 @@ def plan(request):
 @require_POST
 def copy_last_week(request):
     week_start = parse_week(request.POST.get('week'))
+    view = request.POST.get('view', 'both')
+    if view not in PLAN_VIEWS:
+        view = 'both'
     copied_meals, copied_workouts = copy_previous_week(request.user, week_start)
     if copied_meals or copied_workouts:
         messages.success(
             request,
-            f'Copied meals: {copied_meals}, workouts: {copied_workouts}.',
+            f'Copied from last week: {copied_meals} meals, {copied_workouts} workouts.',
         )
     else:
         messages.info(request, 'Nothing new to copy from last week.')
-    return redirect(f"{reverse('tools:plan')}?week={week_start:%Y-%m-%d}")
+    return redirect(
+        f"{reverse('tools:plan')}?week={week_start:%Y-%m-%d}&view={view}"
+    )
 
 @login_required
 def meal_planner(request):

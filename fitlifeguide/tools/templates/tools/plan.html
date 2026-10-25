@@ -2,7 +2,7 @@
 {% block title %}Plan - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="fl-plan">
+<div class="fl-plan" data-plan-view="{{ view }}">
     <div class="fl-plan-head">
         <div>
             <div class="fl-label">Week {{ week_number }}</div>
@@ -23,62 +23,101 @@
                 <a href="?week={{ next_week|date:'Y-m-d' }}&amp;view={{ view }}" aria-label="Next week">&rsaquo;</a>
             </div>
 
+            <a class="fl-btn fl-btn-secondary" href="{% url 'tools:plan' %}?view={{ view }}" data-plan-today>Today</a>
+
             <form method="post" action="{% url 'tools:copy_last_week' %}">
                 {% csrf_token %}
                 <input type="hidden" name="week" value="{{ week_start|date:'Y-m-d' }}">
-                <button class="fl-btn fl-btn-secondary" type="submit" onclick="return confirm('Copy last week into this week? Existing entries are kept.')">Copy last week</button>
+                <input type="hidden" name="view" value="{{ view }}">
+                <button class="fl-btn fl-btn-secondary" type="submit" onclick="return confirm('Copy both meals and workouts from last week? Existing entries are kept.')">Copy meals + workouts</button>
             </form>
         </div>
     </div>
 
-    <div class="fl-plan-days">
-        {% for day in days %}
-            <section class="fl-card fl-plan-day{% if day.is_today %} is-today{% endif %}{% if day.status == 'Done' %} is-done{% endif %}{% if day.status == 'Rest' %} is-rest{% endif %}">
-                <div class="fl-plan-day-head">
-                    <div>
-                        <span class="fl-label">{{ day.label }}</span>
-                        <span class="fl-plan-date">{{ day.date|date:"j" }}</span>
-                    </div>
-                    <span class="fl-pill{% if day.is_today or day.status == 'Done' %} fl-pill-on{% endif %}">{{ day.status }}</span>
-                </div>
+    <div class="fl-plan-scroller">
+        <button type="button" class="fl-plan-scroll" data-plan-scroll="-1" aria-label="Scroll days left">&lsaquo;</button>
 
-                {% if view != 'meals' %}
-                    <div class="fl-plan-section">
-                        <div class="fl-label">Workout</div>
-                        {% if day.workout %}
-                            <div class="fl-plan-entry">
-                                <a class="fl-plan-entry-title" href="{% url 'tools:edit_workout' day.workout.id %}?next={{ request.get_full_path|urlencode }}">{{ day.workout.title }}</a>
-                                <span class="fl-muted">{% if day.workout.duration_minutes %}{{ day.workout.duration_minutes }}{% else %}--{% endif %} min</span>
-                                <span class="fl-pill">{{ day.workout.get_status_display }}</span>
-                            </div>
-                        {% else %}
-                            <a class="fl-plan-add" href="{% url 'tools:add_workout' %}?date={{ day.date|date:'Y-m-d' }}&amp;next={{ request.get_full_path|urlencode }}">+ Add workout</a>
-                        {% endif %}
-                    </div>
-                {% endif %}
-
-                {% if view != 'workouts' %}
-                    <div class="fl-plan-section">
-                        <div class="fl-label">Meals</div>
-                        {% for row in day.meals %}
-                            <div class="fl-plan-meal">
-                                <div class="fl-plan-meal-top">
-                                    <span class="fl-plan-meal-label">{{ row.label }}</span>
-                                    {% if row.meal %}
-                                        <span class="fl-pill{% if row.meal.status == 'eaten' %} fl-pill-on{% endif %}">{{ row.meal.get_status_display }}</span>
+        <div class="fl-plan-days" data-plan-days tabindex="0" aria-label="Days for the selected week">
+            {% for day in days %}
+                <section class="fl-card fl-plan-day is-{{ day.status|lower }}{% if day.expanded %} is-expanded{% endif %}" data-plan-day>
+                    <button type="button" class="fl-plan-day-toggle" aria-expanded="{{ day.expanded|yesno:'true,false' }}" aria-controls="plan-day-{{ day.date|date:'Ymd' }}">
+                        <span class="fl-plan-day-head">
+                            <span>
+                                <span class="fl-label">{{ day.label }}</span>
+                                <span class="fl-plan-date">{{ day.date|date:"j" }}</span>
+                            </span>
+                            <span class="fl-pill{% if day.status == 'Done' or day.status == 'Today' %} fl-pill-on{% endif %}">{{ day.status }}</span>
+                        </span>
+                        <span class="fl-plan-compact">
+                            {% if view != 'meals' %}
+                                <span class="fl-plan-compact-workout is-{{ day.workout_status|lower }}">
+                                    <span class="fl-plan-compact-line">
+                                        <span class="fl-label">Workout</span>
+                                        <span class="fl-plan-compact-status">{{ day.workout_status }}</span>
+                                    </span>
+                                    {% if view == 'workouts' and day.workout %}
+                                        <span class="fl-plan-compact-title">{{ day.workout.title }}</span>
+                                        <span class="fl-plan-compact-meta">{% if day.workout.duration_minutes %}{{ day.workout.duration_minutes }} min{% else %}-- min{% endif %}</span>
                                     {% endif %}
-                                </div>
-                                {% if row.meal %}
-                                    <a class="fl-plan-meal-food" href="{% url 'tools:edit_meal' row.meal.id %}?next={{ request.get_full_path|urlencode }}">{{ row.meal.food_items|truncatewords:4 }}</a>
+                                </span>
+                            {% endif %}
+
+                            {% if view != 'workouts' %}
+                                <span class="fl-plan-compact-meals">
+                                    {% for row in day.meals %}
+                                        <span class="fl-plan-compact-meal{% if row.meal %} is-filled{% endif %}">
+                                            <span class="fl-plan-compact-meal-label">{{ row.label }}</span>
+                                            <span class="fl-plan-compact-meal-bar" aria-hidden="true"></span>
+                                            <span class="fl-plan-sr-only">{% if row.meal %}planned{% else %}empty{% endif %}</span>
+                                        </span>
+                                    {% endfor %}
+                                </span>
+                            {% endif %}
+                        </span>
+                    </button>
+
+                    <div class="fl-plan-day-body" id="plan-day-{{ day.date|date:'Ymd' }}" {% if not day.expanded %}hidden{% endif %}>
+                        {% if view != 'meals' %}
+                            <div class="fl-plan-section">
+                                <div class="fl-label">Workout</div>
+                                {% if day.workout %}
+                                    <div class="fl-plan-entry">
+                                        <a class="fl-plan-entry-title" href="{% url 'tools:edit_workout' day.workout.id %}?next={{ request.get_full_path|urlencode }}">{{ day.workout.title }}</a>
+                                        <span class="fl-muted">{% if day.workout.duration_minutes %}{{ day.workout.duration_minutes }}{% else %}--{% endif %} min</span>
+                                        <span class="fl-pill">{{ day.workout.get_status_display }}</span>
+                                    </div>
                                 {% else %}
-                                    <a class="fl-plan-add" href="{% url 'tools:add_meal' %}?date={{ day.date|date:'Y-m-d' }}&amp;meal_type={{ row.type }}&amp;next={{ request.get_full_path|urlencode }}">+ Add</a>
+                                    <a class="fl-plan-add" href="{% url 'tools:add_workout' %}?date={{ day.date|date:'Y-m-d' }}&amp;next={{ request.get_full_path|urlencode }}">+ Add workout</a>
                                 {% endif %}
                             </div>
-                        {% endfor %}
+                        {% endif %}
+
+                        {% if view != 'workouts' %}
+                            <div class="fl-plan-section">
+                                <div class="fl-label">Meals</div>
+                                {% for row in day.meals %}
+                                    <div class="fl-plan-meal">
+                                        <div class="fl-plan-meal-top">
+                                            <span class="fl-plan-meal-label">{{ row.label }}</span>
+                                            {% if row.meal %}
+                                                <span class="fl-pill{% if row.meal.status == 'eaten' %} fl-pill-on{% endif %}">{{ row.meal.get_status_display }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if row.meal %}
+                                            <a class="fl-plan-meal-food" href="{% url 'tools:edit_meal' row.meal.id %}?next={{ request.get_full_path|urlencode }}">{{ row.meal.food_items|truncatewords:4 }}</a>
+                                        {% else %}
+                                            <a class="fl-plan-add" href="{% url 'tools:add_meal' %}?date={{ day.date|date:'Y-m-d' }}&amp;meal_type={{ row.type }}&amp;next={{ request.get_full_path|urlencode }}">+ Add</a>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
-                {% endif %}
-            </section>
-        {% endfor %}
+                </section>
+            {% endfor %}
+        </div>
+
+        <button type="button" class="fl-plan-scroll" data-plan-scroll="1" aria-label="Scroll days right">&rsaquo;</button>
     </div>
 
     <section class="fl-card fl-plan-ideas">
@@ -97,4 +136,92 @@
         {% endif %}
     </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const row = document.querySelector('[data-plan-days]');
+    if (!row) return;
+
+    const cards = Array.from(row.querySelectorAll('[data-plan-day]'));
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const scrollBehavior = reduceMotion ? 'auto' : 'smooth';
+
+    const scrollToCard = function (card, behavior) {
+        const rowRect = row.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const paddingStart = parseFloat(getComputedStyle(row).scrollPaddingLeft) || 0;
+        const left = row.scrollLeft + cardRect.left - rowRect.left - paddingStart;
+        row.scrollTo({ left: Math.max(0, left), behavior: behavior || scrollBehavior });
+    };
+
+    const setExpanded = function (card, expanded) {
+        const toggle = card.querySelector('.fl-plan-day-toggle');
+        const body = card.querySelector('.fl-plan-day-body');
+        if (!toggle || !body) return;
+        toggle.setAttribute('aria-expanded', String(expanded));
+        body.hidden = !expanded;
+        card.classList.toggle('is-expanded', expanded);
+    };
+
+    const openCard = function (card) {
+        cards.forEach(function (other) {
+            setExpanded(other, other === card);
+        });
+        scrollToCard(card);
+    };
+
+    cards.forEach(function (card, index) {
+        const toggle = card.querySelector('.fl-plan-day-toggle');
+        if (!toggle) return;
+        toggle.addEventListener('click', function () {
+            const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+            if (isOpen) {
+                setExpanded(card, false);
+            } else {
+                openCard(card);
+            }
+        });
+        toggle.addEventListener('keydown', function (event) {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            const target = cards[index + (event.key === 'ArrowRight' ? 1 : -1)];
+            if (!target) return;
+            event.preventDefault();
+            const targetToggle = target.querySelector('.fl-plan-day-toggle');
+            if (!targetToggle) return;
+            targetToggle.focus({ preventScroll: true });
+            scrollToCard(target);
+        });
+    });
+
+    const todayCard = row.querySelector('.is-today');
+    if (todayCard) {
+        window.requestAnimationFrame(function () {
+            scrollToCard(todayCard, 'auto');
+        });
+    }
+
+    const todayButton = document.querySelector('[data-plan-today]');
+    if (todayButton && todayCard) {
+        todayButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            openCard(todayCard);
+        });
+    }
+
+    document.querySelectorAll('[data-plan-scroll]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const card = row.querySelector('[data-plan-day]');
+            if (!card) return;
+            const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+            const distance = card.getBoundingClientRect().width + gap;
+            row.scrollBy({
+                left: distance * Number(button.dataset.planScroll),
+                behavior: scrollBehavior,
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

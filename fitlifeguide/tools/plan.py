@@ -28,6 +28,7 @@ def get_plan_context(user, week_start, view='both'):
 
     week_end = week_start + timedelta(days=6)
     today = timezone.localdate()
+    today_in_week = week_start <= today <= week_end
 
     workouts = list(
         WorkoutPlanner.objects.filter(
@@ -71,18 +72,33 @@ def get_plan_context(user, week_start, view='both'):
         )
         if day == today:
             status = 'Today'
-        elif has_done:
-            status = 'Done'
-        elif has_entries:
-            status = 'Planned'
+        elif day < today:
+            if has_done:
+                status = 'Done'
+            elif has_entries:
+                status = 'Missed'
+            else:
+                status = 'Rest'
         else:
-            status = 'Rest'
+            status = 'Planned' if has_entries else 'Rest'
+
+        if workout is None:
+            workout_status = 'Rest'
+        elif workout.status == 'completed':
+            workout_status = 'Done'
+        elif workout.status == 'missed' or day < today:
+            workout_status = 'Missed'
+        else:
+            workout_status = 'Planned'
+
         days.append({
             'date': day,
             'label': day.strftime('%a'),
             'workout': workout,
             'meals': meal_rows,
             'status': status,
+            'workout_status': workout_status,
+            'expanded': today_in_week and day == today,
             'is_today': day == today,
         })
 
@@ -104,6 +120,7 @@ def get_plan_context(user, week_start, view='both'):
         'prev_week': week_start - timedelta(days=7),
         'next_week': week_start + timedelta(days=7),
         'view': view,
+        'today_in_week': today_in_week,
         'days': days,
         'community_meals': community_meals,
         'community_workouts': community_workouts,
