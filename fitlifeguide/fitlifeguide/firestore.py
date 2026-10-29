@@ -16,8 +16,11 @@ class _EmulatorCredential(credentials.Base):
 
 
 def _initialize_app():
-    if firebase_admin._apps:
+    try:
+        firebase_admin.get_app()
         return
+    except ValueError:
+        pass
 
     project_id = (
         getattr(settings, 'FIREBASE_PROJECT_ID', '')

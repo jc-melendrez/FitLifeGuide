@@ -1,3 +1,4 @@
+import asyncio
 import os
 from io import BytesIO
 from uuid import uuid4
@@ -39,6 +40,8 @@ def upload_image(upload, folder):
         content_type='image/webp',
         add_random_suffix=False,
     )
+    if asyncio.iscoroutine(result):
+        result = asyncio.run(result)
     return result.url
 
 
@@ -46,6 +49,8 @@ def delete_image(url):
     if not url or not url.startswith('http'):
         return
     try:
-        delete_blob(url)
+        result = delete_blob(url)
+        if asyncio.iscoroutine(result):
+            asyncio.run(result)
     except Exception:
         pass
