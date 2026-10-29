@@ -1,24 +1,16 @@
 {% extends 'mainpage/base.html' %}
+{% block title %}Confirm delete - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card bg-dark text-light border-danger">
-        <div class="card-header bg-danger text-white">
-            <h4 class="mb-0">Confirm Deletion</h4>
-        </div>
-        <div class="card-body">
-            <p class="lead">Are you sure you want to delete this {{ object|class_name }}?</p>
-            {% if object.title %}
-                <p><strong>Title:</strong> {{ object.title }}</p>
-            {% endif %}
-            <div class="mt-4">
-                <form method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                    <a href="{{ object.get_absolute_url }}" class="btn btn-secondary ms-2">Cancel</a>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="fl-card fl-delete-card">
+    <div class="fl-label fl-lime">Confirm deletion</div>
+    <h1 class="fl-h fl-page-title">Delete this item?</h1>
+    <p class="fl-muted">This cannot be undone.</p>
+    {% if object.title %}<p class="fl-delete-title">{{ object.title }}</p>{% endif %}
+    <form method="post" class="fl-form-actions">
+        {% csrf_token %}
+        <button type="submit" class="fl-btn fl-btn-danger">Delete</button>
+        <a class="fl-btn fl-btn-secondary" href="{% if cancel_url %}{{ cancel_url }}{% else %}{% url 'posts' %}{% endif %}">Cancel</a>
+    </form>
 </div>
-{% endblock %} 
+{% endblock %}

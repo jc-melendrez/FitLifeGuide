@@ -1,106 +1,37 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
-
-{% block title %}Create New Thread - {{ forum.name }}{% endblock %}
+{% block title %}New thread - {{ forum.name }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card bg-dark text-light">
-                <div class="card-header">
-                    <h2 class="mb-0">Create New Thread in {{ forum.name }}</h2>
-                </div>
-                <div class="card-body">
-                    <form method="post" class="needs-validation" novalidate>
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.title.id_for_label }}" class="form-label">Thread Title</label>
-                            {{ form.title }}
-                            {% if form.title.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.title.errors|join:", " }}
-                            </div>
-                            {% endif %}
-                            <div class="form-text text-light-emphasis">
-                                Choose a clear, descriptive title for your thread.
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="content" class="form-label">Content</label>
-                            <textarea name="content" id="content" class="form-control bg-dark text-light" rows="8" 
-                                    placeholder="Write your thread content here..." required></textarea>
-                            <div class="invalid-feedback">
-                                Please provide the content for your thread.
-                            </div>
-                            <div class="form-text text-light-emphasis">
-                                Share your thoughts, questions, or discussion topic in detail.
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a href="{% url 'forum_threads' forum.slug %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Threads
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus-circle me-2"></i>Create Thread
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">{{ forum.name }}</div>
+        <h1 class="fl-h fl-page-title">New <span class="fl-lime">thread</span></h1>
     </div>
+    <a class="fl-pill" href="{% url 'forum_threads' forum.slug %}">Back to threads</a>
 </div>
 
-<style>
-    .form-control {
-        border-color: rgba(255, 255, 255, 0.1);
-    }
+<form method="post" class="fl-card fl-form" novalidate>
+    {% csrf_token %}
 
-    .form-control:focus {
-        background-color: #2b3035;
-        border-color: #0dcaf0;
-        box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
-        color: #fff;
-    }
+    {% if form.non_field_errors %}
+    <div class="fl-alert fl-alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
 
-    .form-text {
-        opacity: 0.7;
-    }
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.title.id_for_label }}">Thread title</label>
+        {{ form.title }}
+        {{ form.title.errors }}
+    </div>
 
-    .btn-outline-secondary {
-        border-color: rgba(255, 255, 255, 0.2);
-        color: rgba(255, 255, 255, 0.8);
-    }
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.content.id_for_label }}">Content</label>
+        {{ form.content }}
+        {{ form.content.errors }}
+    </div>
 
-    .btn-outline-secondary:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.3);
-        color: #fff;
-    }
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Form validation
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-    });
-
-    // Auto-resize textarea
-    const textarea = document.querySelector('textarea');
-    textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-    });
-});
-</script>
+    <div class="fl-form-actions">
+        <button type="submit" class="fl-btn">Create thread</button>
+        <a class="fl-btn fl-btn-secondary" href="{% url 'forum_threads' forum.slug %}">Cancel</a>
+    </div>
+</form>
 {% endblock %}

@@ -70,6 +70,7 @@
     </footer>
 
     {% if user.is_authenticated %}
+    <div class="fl-dock-spacer" aria-hidden="true"></div>
     <nav class="fl-dock" aria-label="App navigation">
         <a href="{% url 'home' %}" class="{% if request.path == '/' or '/home/' in request.path %}is-on{% endif %}">Today</a>
         <a href="{% url 'tools:plan' %}" class="{% if '/plan/' in request.path or '/meal-planner/' in request.path or '/workout-hub/' in request.path or '/add-workout/' in request.path or '/edit-workout/' in request.path %}is-on{% endif %}">Plan</a>

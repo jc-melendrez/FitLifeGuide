@@ -1,422 +1,207 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
 {% load mptt_tags %}
-
-{% block title %}{{ thread.title }}{% endblock %}
+{% block title %}{{ thread.title }} - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Thread Header -->
-    <div class="card bg-dark text-light">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-                <img src="{{ thread.author.profile.avatar.url }}" alt="{{ thread.author.username }}'s avatar" 
-                     class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
-                <h2 class="mb-0">{{ thread.title }}</h2>
-            </div>
-            {% if user == thread.author %}
-            <div>
-                <a href="{% url 'delete_thread' thread.slug %}" class="btn btn-danger btn-sm">
-                    <i class="fas fa-trash"></i> Delete Thread
-                </a>
-            </div>
-            {% endif %}
-        </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <small class="text-muted">
-                    Posted by {{ thread.author.username }} on {{ thread.created_at|date:"F j, Y" }}
-                </small>
-            </div>
-            <div class="thread-content mb-4">
-                {{ thread.content|linebreaks }}
-            </div>
-            <div class="d-flex align-items-center mb-4">
-                <form action="{% url 'like_thread' thread.slug %}" method="post" class="like-form me-3">
-                    {% csrf_token %}
-                    <button type="submit" class="thread-stat like-btn {% if user_has_liked %}liked{% endif %}">
-                        <i class="fas fa-heart"></i>
-                        <span class="d-block like-count">{{ thread.total_likes }}</span>
-                    </button>
-                </form>
-                <div class="thread-stat">
-                    <i class="fas fa-comment"></i>
-                    <span class="d-block">{{ posts.count }}</span>
-                </div>
-            </div>
-        </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">{{ thread.forum.name }}</div>
+        <h1 class="fl-h fl-page-title">{{ thread.title }}</h1>
     </div>
-
-    <!-- Posts and Comments Section -->
-    <div class="card bg-dark text-light mt-4">
-        <div class="card-header">
-            <h4>Discussion</h4>
-        </div>
-        <div class="card-body">
-            {% if user.is_authenticated %}
-            <form method="post" class="mb-4">
-                {% csrf_token %}
-                {{ form.content }}
-                <button type="submit" class="btn btn-primary mt-2">Add Reply</button>
-            </form>
-            {% else %}
-            <p class="text-muted mb-4">Please <a href="{% url 'login' %}">log in</a> to join the discussion.</p>
-            {% endif %}
-
-            <div class="posts-list">
-                {% for post in posts %}
-                <div class="post mb-4 p-3 border-bottom">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="d-flex align-items-center">
-                            <img src="{{ post.author.profile.avatar.url }}" alt="{{ post.author.username }}'s avatar" 
-                                 class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover;">
-                            <div>
-                                <strong>{{ post.author.username }}</strong>
-                                <small class="text-muted d-block">{{ post.created_at|date:"F j, Y" }}</small>
-                            </div>
-                        </div>
-                        {% if user == post.author %}
-                        <div>
-                            <form action="{% url 'delete_forum_post' post.id %}" method="post" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this post?')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="post-content mt-3">
-                        {{ post.content|linebreaks }}
-                    </div>
-                    <div class="d-flex align-items-center mt-2">
-                        {% if user.is_authenticated %}
-                        <form action="{% url 'like_forum_post' post.id %}" method="post" class="like-form me-3">
-                            {% csrf_token %}
-                            <button type="submit" class="post-stat like-btn {% if user in post.likes.all %}liked{% endif %}">
-                                <i class="fas fa-heart"></i>
-                                <span class="ms-1 like-count">{{ post.total_likes }}</span>
-                            </button>
-                        </form>
-                        {% endif %}
-                        <button class="btn btn-link text-info reply-btn" data-post-id="{{ post.id }}">
-                            <i class="fas fa-reply"></i> Reply
-                        </button>
-                    </div>
-
-                    <!-- Nested Comments -->
-                    <div class="comments-section mt-3">
-                        {% if post.comments.exists %}
-                        <div class="comments-tree">
-                            {% recursetree post.comments.all %}
-                            <div class="comment ms-4 mb-3" id="comment-{{ node.id }}">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="d-flex align-items-center">
-                                        <img src="{{ node.author.profile.avatar.url }}" alt="{{ node.author.username }}'s avatar" 
-                                             class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                                        <div>
-                                            <strong>{{ node.author.username }}</strong>
-                                            <small class="text-muted d-block">{{ node.created_at|date:"F j, Y" }}</small>
-                                        </div>
-                                    </div>
-                                    {% if user == node.author %}
-                                    <form action="{% url 'delete_comment' node.id %}" method="post" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this comment?')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                                <div class="comment-content mt-2">
-                                    {{ node.content|linebreaks }}
-                                </div>
-                                <div class="d-flex align-items-center mt-2">
-                                    {% if user.is_authenticated %}
-                                    <form action="{% url 'like_comment' node.id %}" method="post" class="like-form me-3">
-                                        {% csrf_token %}
-                                        <button type="submit" class="post-stat like-btn {% if user in node.likes.all %}liked{% endif %}">
-                                            <i class="fas fa-heart"></i>
-                                            <span class="ms-1 like-count">{{ node.total_likes }}</span>
-                                        </button>
-                                    </form>
-                                    <button class="btn btn-link text-info reply-btn" 
-                                            data-post-id="{{ post.id }}" 
-                                            data-parent-id="{{ node.id }}">
-                                        <i class="fas fa-reply"></i> Reply
-                                    </button>
-                                    {% endif %}
-                                </div>
-                                {% if not node.is_leaf_node %}
-                                <div class="children ms-4 mt-3">
-                                    {{ children }}
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% endrecursetree %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% empty %}
-                <p class="text-muted">No replies yet. Be the first to reply!</p>
-                {% endfor %}
-            </div>
-        </div>
+    <div class="fl-pill-row">
+        <a class="fl-pill" href="{% url 'forum_threads' thread.forum.slug %}">Back to forum</a>
+        {% if user == thread.author %}
+        <a class="fl-pill fl-pill-danger" href="{% url 'delete_thread' thread.slug %}">Delete</a>
+        {% endif %}
     </div>
 </div>
 
-<!-- Comment Form Template for Replies -->
+<article class="fl-card fl-thread-head">
+    <div class="fl-log-author">
+        <img class="fl-avatar fl-avatar-xs" src="{{ thread.author.profile.avatar.url }}" alt="">
+        <div>
+            <strong>{{ thread.author.username }}</strong>
+            <div class="fl-label">{{ thread.created_at|date:"M d, Y" }}</div>
+        </div>
+    </div>
+    <div class="fl-post-copy">{{ thread.content|linebreaks }}</div>
+    <div class="fl-log-actions">
+        {% if user.is_authenticated %}
+        <form method="post" action="{% url 'like_thread' thread.slug %}" class="fl-like-form">
+            {% csrf_token %}
+            <button type="submit" class="fl-post-action{% if user_has_liked %} is-liked{% endif %}" data-like-button>
+                Like <span data-like-count>{{ thread.total_likes }}</span>
+            </button>
+        </form>
+        {% else %}
+        <a class="fl-post-action" href="{% url 'login' %}">Like {{ thread.total_likes }}</a>
+        {% endif %}
+        <span class="fl-post-action">{{ posts.count }} replies</span>
+    </div>
+</article>
+
+<section class="fl-card fl-replies" id="replies">
+    <div class="fl-label fl-lime">Discussion</div>
+
+    {% if user.is_authenticated %}
+    <form method="post" class="fl-form fl-comment-form">
+        {% csrf_token %}
+        <div class="fl-field">
+            <textarea class="fl-input" name="content" rows="3" placeholder="Write a reply..." required></textarea>
+        </div>
+        <button type="submit" class="fl-btn">Add reply</button>
+    </form>
+    {% else %}
+    <p class="fl-muted">Please <a href="{% url 'login' %}">log in</a> to join the discussion.</p>
+    {% endif %}
+
+    {% for post in posts %}
+    <article class="fl-forum-post">
+        <div class="fl-comment-head">
+            <img class="fl-avatar fl-avatar-xs" src="{{ post.author.profile.avatar.url }}" alt="">
+            <div>
+                <strong>{{ post.author.username }}</strong>
+                <div class="fl-label">{{ post.created_at|date:"M d, Y" }}</div>
+            </div>
+            {% if user == post.author %}
+            <form method="post" action="{% url 'delete_forum_post' post.id %}" class="fl-inline-form">
+                {% csrf_token %}
+                <button type="submit" class="fl-post-action" onclick="return confirm('Delete this reply?')">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="fl-post-copy">{{ post.content|linebreaks }}</div>
+        <div class="fl-log-actions">
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'like_forum_post' post.id %}" class="fl-like-form">
+                {% csrf_token %}
+                <button type="submit" class="fl-post-action{% if user in post.likes.all %} is-liked{% endif %}" data-like-button>
+                    Like <span data-like-count>{{ post.total_likes }}</span>
+                </button>
+            </form>
+            <button type="button" class="fl-post-action fl-reply-btn" data-post-id="{{ post.id }}">Reply</button>
+            {% endif %}
+        </div>
+
+        {% if post.comments.exists %}
+        <div class="fl-comment-tree">
+            {% recursetree post.comments.all %}
+            <div class="fl-comment" id="comment-{{ node.id }}">
+                <div class="fl-comment-head">
+                    <img class="fl-avatar fl-avatar-xs" src="{{ node.author.profile.avatar.url }}" alt="">
+                    <div>
+                        <strong>{{ node.author.username }}</strong>
+                        <div class="fl-label">{{ node.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    {% if user == node.author %}
+                    <form method="post" action="{% url 'delete_comment' node.id %}" class="fl-inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="fl-post-action" onclick="return confirm('Delete this comment?')">Delete</button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="fl-post-copy">{{ node.content|linebreaks }}</div>
+                <div class="fl-log-actions">
+                    {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'like_comment' node.id %}" class="fl-like-form">
+                        {% csrf_token %}
+                        <button type="submit" class="fl-post-action{% if user in node.likes.all %} is-liked{% endif %}" data-like-button>
+                            Like <span data-like-count>{{ node.total_likes }}</span>
+                        </button>
+                    </form>
+                    <button type="button" class="fl-post-action fl-reply-btn" data-post-id="{{ post.id }}" data-parent-id="{{ node.id }}">Reply</button>
+                    {% endif %}
+                </div>
+                {% if not node.is_leaf_node %}
+                <button type="button" class="fl-post-action fl-toggle-replies" data-target="#replies-{{ node.id }}" data-count="{{ node.get_descendant_count }}">{{ node.get_descendant_count }} replies ></button>
+                <div id="replies-{{ node.id }}" class="fl-comment-children" hidden>{{ children }}</div>
+                {% endif %}
+            </div>
+            {% endrecursetree %}
+        </div>
+        {% endif %}
+    </article>
+    {% empty %}
+    <p class="fl-muted">No replies yet. Be the first to reply.</p>
+    {% endfor %}
+</section>
+
 <template id="reply-form-template">
-    <form method="post" class="reply-form mb-3 mt-2">
+    <form method="post" class="fl-form fl-reply-form">
         {% csrf_token %}
         <input type="hidden" name="parent" value="">
-        <textarea name="content" class="form-control bg-dark text-light" rows="2" placeholder="Write your reply here..."></textarea>
-        <div class="mt-2">
-            <button type="submit" class="btn btn-primary btn-sm">Reply</button>
-            <button type="button" class="btn btn-secondary btn-sm cancel-reply">Cancel</button>
+        <div class="fl-field">
+            <textarea class="fl-input" name="content" rows="2" placeholder="Write your reply..." required></textarea>
+        </div>
+        <div class="fl-form-actions">
+            <button type="submit" class="fl-btn">Reply</button>
+            <button type="button" class="fl-btn fl-btn-secondary cancel-reply">Cancel</button>
         </div>
     </form>
 </template>
+{% endblock %}
 
-<style>
-    .comment {
-        border-left: 2px solid rgba(13, 202, 240, 0.2);
-        padding-left: 1rem;
-    }
-
-    .comment:hover {
-        border-left-color: rgba(13, 202, 240, 0.5);
-    }
-
-    .children {
-        position: relative;
-    }
-
-    .children::before {
-        content: '';
-        position: absolute;
-        left: -1rem;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: rgba(13, 202, 240, 0.1);
-    }
-
-    .reply-form {
-        background: rgba(13, 202, 240, 0.05);
-        padding: 1rem;
-        border-radius: 0.25rem;
-    }
-
-    .btn-link {
-        text-decoration: none;
-        padding: 0;
-    }
-
-    .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .form-control {
-        background-color: #1a1e21;
-        border-color: rgba(255, 255, 255, 0.1);
-        color: #fff;
-    }
-
-    .form-control:focus {
-        background-color: #2b3035;
-        border-color: #0dcaf0;
-        box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
-        color: #fff;
-    }
-
-    .thread-stat {
-        background-color: rgba(13, 202, 240, 0.1);
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.25rem;
-        text-align: center;
-        min-width: 48px;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #fff;
-    }
-
-    .thread-stat:not(.no-hover):hover {
-        background-color: rgba(13, 202, 240, 0.2);
-        transform: translateY(-1px);
-    }
-
-    .thread-stat.like-btn {
-        outline: none;
-    }
-
-    .thread-stat.like-btn:focus {
-        box-shadow: 0 0 0 2px rgba(13, 202, 240, 0.25);
-    }
-
-    .thread-stat .fa-heart {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 1rem;
-        transition: all 0.2s ease;
-    }
-
-    .thread-stat:hover .fa-heart {
-        transform: scale(1.1);
-        color: rgba(255, 77, 109, 0.7);
-    }
-
-    .thread-stat.liked .fa-heart {
-        color: #ff4d6d;
-        animation: heartBeat 0.3s ease-in-out;
-    }
-
-    .post-stat {
-        background-color: rgba(13, 202, 240, 0.1);
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.25rem;
-        text-align: center;
-        min-width: 48px;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #fff;
-    }
-
-    .post-stat:not(.no-hover):hover {
-        background-color: rgba(13, 202, 240, 0.2);
-        transform: translateY(-1px);
-    }
-
-    .post-stat.like-btn {
-        outline: none;
-    }
-
-    .post-stat.like-btn:focus {
-        box-shadow: 0 0 0 2px rgba(13, 202, 240, 0.25);
-    }
-
-    .post-stat .fa-heart {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 1rem;
-        transition: all 0.2s ease;
-    }
-
-    .post-stat:hover .fa-heart {
-        transform: scale(1.1);
-        color: rgba(255, 77, 109, 0.7);
-    }
-
-    .post-stat.liked .fa-heart {
-        color: #ff4d6d;
-        animation: heartBeat 0.3s ease-in-out;
-    }
-
-    @keyframes heartBeat {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.2); }
-        100% { transform: scale(1); }
-    }
-</style>
-
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Like functionality
-    const likeForms = document.querySelectorAll('.like-form');
-    likeForms.forEach(form => {
-        form.addEventListener('submit', handleLike);
-    });
-
-    // Reply functionality
-    const replyButtons = document.querySelectorAll('.reply-btn');
-    replyButtons.forEach(button => {
-        button.addEventListener('click', handleReplyClick);
-    });
-
-    function handleLike(e) {
-        e.preventDefault();
-        const button = this.querySelector('button');
-        const likeCount = this.querySelector('.like-count');
-        
-        fetch(this.action, {
+document.querySelectorAll('.fl-like-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        fetch(form.action, {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value,
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: new FormData(this)
+            body: new FormData(form),
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.liked) {
-                button.classList.add('liked');
-                button.querySelector('.fa-heart').style.color = '#ff4d6d';
-            } else {
-                button.classList.remove('liked');
-                button.querySelector('.fa-heart').style.color = 'rgba(255, 255, 255, 0.5)';
-            }
-            
-            likeCount.textContent = data.total_likes;
-            
-            // Add animation
-            button.querySelector('.fa-heart').style.animation = 'none';
-            button.querySelector('.fa-heart').offsetHeight; // Trigger reflow
-            button.querySelector('.fa-heart').style.animation = 'heartBeat 0.3s ease-in-out';
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    function handleReplyClick(e) {
-        const postId = this.dataset.postId;
-        const parentId = this.dataset.parentId;
-        const template = document.getElementById('reply-form-template');
-        const replyForm = template.content.cloneNode(true).querySelector('form');
-        
-        // Remove any existing reply forms
-        document.querySelectorAll('.reply-form').forEach(form => form.remove());
-        
-        // Set up the new form
-        replyForm.action = `/forum-post/${postId}/comment/`;
-        if (parentId) {
-            replyForm.querySelector('[name=parent]').value = parentId;
-        }
-        
-        // Add the form after the clicked button
-        this.parentNode.insertAdjacentElement('afterend', replyForm);
-        
-        // Focus the textarea
-        replyForm.querySelector('textarea').focus();
-        
-        // Handle cancel button
-        replyForm.querySelector('.cancel-reply').addEventListener('click', () => {
-            replyForm.remove();
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            const button = form.querySelector('[data-like-button]');
+            const count = form.querySelector('[data-like-count]');
+            if (button) button.classList.toggle('is-liked', data.liked);
+            if (count) count.textContent = data.total_likes;
         });
-        
-        // Handle form submission
-        replyForm.addEventListener('submit', handleReplySubmit);
-    }
+    });
+});
 
-    function handleReplySubmit(e) {
-        e.preventDefault();
-        fetch(this.action, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value,
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: new FormData(this)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                location.reload(); // Reload to show the new comment
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
+document.querySelectorAll('.fl-toggle-replies').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        const targetId = btn.dataset.target;
+        const el = document.querySelector(targetId);
+        if (!el) return;
+        const isHidden = el.hasAttribute('hidden');
+        if (isHidden) {
+            el.removeAttribute('hidden');
+            btn.textContent = btn.dataset.count + ' replies <';
+        } else {
+            el.setAttribute('hidden', '');
+            btn.textContent = btn.dataset.count + ' replies >';
+        }
+    });
+});
+
+document.querySelectorAll('.fl-reply-btn').forEach(function (button) {
+    button.addEventListener('click', function () {
+        const template = document.getElementById('reply-form-template');
+        const form = template.content.cloneNode(true).querySelector('form');
+        document.querySelectorAll('.fl-reply-form').forEach(function (existing) { existing.remove(); });
+        form.action = '/forum-post/' + button.dataset.postId + '/comment/';
+        if (button.dataset.parentId) {
+            form.querySelector('[name=parent]').value = button.dataset.parentId;
+        }
+        button.parentNode.insertAdjacentElement('afterend', form);
+        form.querySelector('textarea').focus();
+        form.querySelector('.cancel-reply').addEventListener('click', function () { form.remove(); });
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.status === 'success') location.reload();
+            });
+        });
+    });
 });
 </script>
 {% endblock %}

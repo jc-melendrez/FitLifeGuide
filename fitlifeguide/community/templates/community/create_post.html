@@ -1,56 +1,57 @@
 {% extends 'mainpage/base.html' %}
-
-{% load widget_tweaks %}
-{% load static %}
-
-{% block title %}Create Post{% endblock %}
+{% block title %}Share a session - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container py-5 text-white" style="max-width: 700px;">
-  <div class="card bg-dark border-secondary shadow-lg p-4 rounded">
-    <h2 class="mb-4 text-info">
-      <i class="bi bi-pencil-square me-2"></i>Create a New Post
-    </h2>
-    
-    <form method="post" novalidate>
-      {% csrf_token %}
-      {{ form.non_field_errors }}
-
-      <!-- Title Field -->
-      <div class="mb-3">
-        <label for="id_title" class="form-label fw-bold text-info">
-          <i class="bi bi-type me-1"></i>Title
-        </label>
-        {{ form.title|add_class:"form-control bg-dark text-light border-secondary" }}
-        {% if form.title.errors %}
-          <div class="text-danger small mt-1">{{ form.title.errors }}</div>
-        {% endif %}
-      </div>
-
-      <!-- Content Field -->
-      <div class="mb-3">
-        <label for="id_content" class="form-label fw-bold text-info">
-          <i class="bi bi-card-text me-1"></i>Content
-        </label>
-        {{ form.content|add_class:"form-control bg-dark text-light border-secondary" }}
-        {% if form.content.errors %}
-          <div class="text-danger small mt-1">{{ form.content.errors }}</div>
-        {% endif %}
-      </div>
-
-      <!-- Published Checkbox -->
-      <div class="form-check mb-4">
-        {{ form.published|add_class:"form-check-input" }}
-        <label class="form-check-label text-light" for="id_published">
-          Publish Immediately
-        </label>
-      </div>
-
-      <!-- Submit Button -->
-      <button type="submit" class="btn btn-primary w-100">
-        <i class="bi bi-upload me-1"></i>Publish Post
-      </button>
-    </form>
-  </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">Community</div>
+        <h1 class="fl-h fl-page-title">Share a <span class="fl-lime">session</span></h1>
+    </div>
+    <a class="fl-pill" href="{% url 'posts' %}">Cancel</a>
 </div>
+
+<form method="post" enctype="multipart/form-data" class="fl-card fl-form fl-post-form" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="fl-alert fl-alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}
+        {{ form.title.errors }}
+    </div>
+
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.content.id_for_label }}">Session notes</label>
+        {{ form.content }}
+        {{ form.content.errors }}
+    </div>
+
+    <div class="fl-grid-2">
+        <div class="fl-field">
+            <label class="fl-label" for="{{ form.workout.id_for_label }}">Link a workout</label>
+            {{ form.workout }}
+            {{ form.workout.errors }}
+            <p class="fl-muted fl-field-hint">Optional. Adds the session details to your post.</p>
+        </div>
+        <div class="fl-field">
+            <label class="fl-label" for="{{ form.image.id_for_label }}">Session photo</label>
+            {{ form.image }}
+            {{ form.image.errors }}
+            <p class="fl-muted fl-field-hint">Optional. JPG, PNG, or GIF.</p>
+        </div>
+    </div>
+
+    <label class="fl-check" for="{{ form.published.id_for_label }}">
+        {{ form.published }}
+        <span>Publish immediately</span>
+    </label>
+
+    <div class="fl-form-actions">
+        <button type="submit" class="fl-btn">Share session</button>
+        <a class="fl-btn fl-btn-secondary" href="{% url 'posts' %}">Cancel</a>
+    </div>
+</form>
 {% endblock %}

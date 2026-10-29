@@ -1,54 +1,33 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
-
-{% block title %}Forums{% endblock %}
+{% block title %}Forums - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container my-5 text-light">
-
-  <!-- Forums Section -->
-  <h2 class="mb-4"><i class="bi bi-chat-dots me-2"></i>Forums</h2>
-
-  {% if forums %}
-  <div class="row">
-    {% for forum in forums %}
-    <div class="col-md-6 col-lg-4 mb-4">
-      <div class="card bg-dark border-secondary h-100 shadow-sm forum-card">
-        <div class="card-body d-flex flex-column">
-          <h5 class="card-title text-info">{{ forum.name }}</h5>
-          <p class="card-text text-light mb-3">
-            {{ forum.description|default:"No description available." }}
-          </p>
-          <p class="card-text mt-auto">
-            <small class="text-light">{{ forum.threads.count }} thread{{ forum.threads.count|pluralize }}</small><br>
-            {% if forum.threads.last %}
-              <small class="text-light">Last post: {{ forum.threads.last.created_at|date:"M d, Y H:i" }}</small>
-            {% else %}
-              <small class="text-light">No posts yet</small>
-            {% endif %}
-          </p>
-          <a href="{% url 'forum_threads' forum.slug %}" class="btn btn-outline-info btn-sm mt-2">
-            View Threads
-          </a>
-          <a href="{% url 'thread_create' forum.slug %}" class="btn btn-info btn-sm mt-2">
-            <i class="bi bi-plus-circle me-1"></i> New Thread
-          </a>
-        </div>
-      </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">Community</div>
+        <h1 class="fl-h fl-page-title">Forums</h1>
     </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p class="text-light">No forums available yet.</p>
-  {% endif %}
+    <a class="fl-pill" href="{% url 'posts' %}">Training log</a>
 </div>
 
-<!-- Optional CSS styling -->
-<style>
-  .forum-card:hover {
-    background-color: #1f1f1f;
-    border-color: #0d6efd;
-    transition: 0.3s ease;
-  }
-</style>
+{% if forums %}
+<div class="fl-grid-3 fl-forum-grid">
+    {% for forum in forums %}
+    <section class="fl-card fl-forum-card">
+        <div class="fl-label fl-lime">{{ forum.threads.count }} threads</div>
+        <h2 class="fl-h">{{ forum.name }}</h2>
+        <p class="fl-muted">{{ forum.description|default:"No description yet." }}</p>
+        <div class="fl-forum-actions">
+            <a class="fl-btn fl-btn-secondary" href="{% url 'forum_threads' forum.slug %}">View threads</a>
+            <a class="fl-pill" href="{% url 'thread_create' forum.slug %}">New thread</a>
+        </div>
+    </section>
+    {% endfor %}
+</div>
+{% else %}
+<div class="fl-card fl-empty">
+    <div class="fl-h">No forums yet.</div>
+    <p class="fl-muted">Check back soon.</p>
+</div>
+{% endif %}
 {% endblock %}

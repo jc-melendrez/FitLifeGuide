@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Count
 from django.http import JsonResponse, HttpResponseForbidden
 from django.urls import reverse
 from .models import BlogPost, Forum, Thread, ForumPost, BlogComment, ForumComment
@@ -8,12 +9,30 @@ from .forms import BlogPostForm, ThreadForm, BlogCommentForm, ForumCommentForm
 
 
 def posts_view(request):
-    posts = BlogPost.objects.filter(published=True).select_related('author', 'author__profile').prefetch_related('likes', 'comments')
-    return render(request, 'community/posts.html', {'posts': posts})
+    posts = (
+        BlogPost.objects.filter(published=True)
+        .select_related('author', 'author__profile', 'workout')
+        .prefetch_related('likes', 'comments')
+    )
+    hot_thread = (
+        Thread.objects.select_related('forum', 'author')
+        .annotate(reply_count=Count('posts'))
+        .order_by('-reply_count', '-created_at')
+        .first()
+    )
+    return render(request, 'community/posts.html', {
+        'posts': posts,
+        'hot_thread': hot_thread,
+        'forums': Forum.objects.annotate(thread_count=Count('threads')),
+    })
 
 
 def post_detail_view(request, slug):
-    post = get_object_or_404(BlogPost, slug=slug, published=True)
+    post = get_object_or_404(
+        BlogPost.objects.select_related('author', 'author__profile', 'workout'),
+        slug=slug,
+        published=True,
+    )
     comments = post.comments.select_related('author').all()
     
     if request.method == 'POST' and request.user.is_authenticated:
@@ -39,7 +58,7 @@ def post_detail_view(request, slug):
 @login_required
 def create_post_view(request):
     if request.method == 'POST':
-        form = BlogPostForm(request.POST)
+        form = BlogPostForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
@@ -47,7 +66,7 @@ def create_post_view(request):
             messages.success(request, 'Post created successfully!')
             return redirect('posts')
     else:
-        form = BlogPostForm()
+        form = BlogPostForm(user=request.user)
     return render(request, 'community/create_post.html', {'form': form})
 
 
@@ -62,7 +81,10 @@ def delete_post(request, slug):
         messages.success(request, 'Post deleted successfully!')
         return redirect('posts')
     
-    return render(request, 'community/delete_confirm.html', {'object': post})
+    return render(request, 'community/delete_confirm.html', {
+        'object': post,
+        'cancel_url': reverse('posts'),
+    })
 
 
 @login_required
@@ -120,7 +142,10 @@ def thread_create(request, slug):
 
 
 def thread_detail(request, slug):
-    thread = get_object_or_404(Thread.objects.select_related('author', 'author__profile'), slug=slug)
+    thread = get_object_or_404(
+        Thread.objects.select_related('author', 'author__profile', 'forum'),
+        slug=slug,
+    )
     posts = thread.posts.select_related('author', 'author__profile').prefetch_related(
         'comments', 
         'comments__author', 
@@ -159,7 +184,10 @@ def delete_thread(request, slug):
         messages.success(request, 'Thread deleted successfully!')
         return redirect('forum_threads', slug=forum_slug)
     
-    return render(request, 'community/delete_confirm.html', {'object': thread})
+    return render(request, 'community/delete_confirm.html', {
+        'object': thread,
+        'cancel_url': reverse('forum_threads', args=[thread.forum.slug]),
+    })
 
 
 @login_required
@@ -192,7 +220,10 @@ def delete_forum_post(request, post_id):
         messages.success(request, 'Post deleted successfully!')
         return redirect('thread_detail', slug=thread_slug)
     
-    return render(request, 'community/delete_confirm.html', {'object': post})
+    return render(request, 'community/delete_confirm.html', {
+        'object': post,
+        'cancel_url': reverse('thread_detail', args=[post.thread.slug]),
+    })
 
 
 @login_required
@@ -254,7 +285,10 @@ def delete_comment(request, comment_id):
         messages.success(request, 'Comment deleted successfully!')
         return redirect('thread_detail', slug=thread_slug)
     
-    return render(request, 'community/delete_confirm.html', {'object': comment})
+    return render(request, 'community/delete_confirm.html', {
+        'object': comment,
+        'cancel_url': reverse('thread_detail', args=[comment.post.thread.slug]),
+    })
 
 
 @login_required

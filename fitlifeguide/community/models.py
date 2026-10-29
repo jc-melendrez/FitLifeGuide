@@ -13,6 +13,14 @@ class BlogPost(models.Model):
     slug = models.SlugField(unique=True, blank=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blog_posts')
     content = models.TextField()
+    image = models.ImageField(upload_to='post_pics', blank=True)
+    workout = models.ForeignKey(
+        'tools.WorkoutPlanner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='blog_posts',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     published = models.BooleanField(default=False)

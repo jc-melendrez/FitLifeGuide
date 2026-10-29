@@ -1,107 +1,112 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
+{% block title %}{{ post.title }} - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card bg-dark text-light">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">{{ post.title }}</h2>
-            {% if user == post.author %}
-            <div>
-                <a href="{% url 'delete_post' post.slug %}" class="btn btn-danger btn-sm">
-                    <i class="fas fa-trash"></i> Delete
-                </a>
-            </div>
-            {% endif %}
-        </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <small class="text-muted">
-                    Posted by {{ post.author.username }} on {{ post.created_at|date:"F j, Y" }}
-                </small>
-            </div>
-            <div class="post-content mb-4">
-                {{ post.content|linebreaks }}
-            </div>
-            <div class="d-flex align-items-center mb-4">
-                <form action="{% url 'like_post' post.slug %}" method="post" class="like-form me-3">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-primary btn-sm {% if user_has_liked %}active{% endif %}">
-                        <i class="fas fa-heart"></i> 
-                        <span class="like-count">{{ post.total_likes }}</span>
-                    </button>
-                </form>
-                <small class="text-muted">{{ post.comments.count }} comments</small>
-            </div>
-        </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">Training log</div>
+        <h1 class="fl-h fl-page-title">{{ post.title }}</h1>
     </div>
-
-    <!-- Comments Section -->
-    <div class="card bg-dark text-light mt-4">
-        <div class="card-header">
-            <h4>Comments</h4>
-        </div>
-        <div class="card-body">
-            {% if user.is_authenticated %}
-            <form method="post" class="mb-4">
-                {% csrf_token %}
-                {{ form.content }}
-                <button type="submit" class="btn btn-primary mt-2">Add Comment</button>
-            </form>
-            {% else %}
-            <p class="text-muted mb-4">Please <a href="{% url 'login' %}">log in</a> to comment.</p>
-            {% endif %}
-
-            <div class="comments-list">
-                {% for comment in comments %}
-                <div class="comment mb-3 p-3 border-bottom">
-                    <div class="d-flex justify-content-between">
-                        <strong>{{ comment.author.username }}</strong>
-                        <small class="text-muted">{{ comment.created_at|date:"F j, Y" }}</small>
-                    </div>
-                    <p class="mt-2 mb-0">{{ comment.content|linebreaks }}</p>
-                </div>
-                {% empty %}
-                <p class="text-muted">No comments yet.</p>
-                {% endfor %}
-            </div>
-        </div>
+    <div class="fl-pill-row">
+        <a class="fl-pill" href="{% url 'posts' %}">Back to log</a>
+        {% if user == post.author %}
+        <a class="fl-pill fl-pill-danger" href="{% url 'delete_post' post.slug %}">Delete</a>
+        {% endif %}
     </div>
 </div>
 
+<article class="fl-card fl-log fl-log-detail">
+    {% if post.image %}
+    <div class="fl-log-photo">
+        <img src="{{ post.image.url }}" alt="">
+    </div>
+    {% endif %}
+    <div class="fl-log-body">
+        <div class="fl-log-author">
+            <img class="fl-avatar fl-avatar-xs" src="{{ post.author.profile.avatar.url }}" alt="">
+            <div>
+                <strong>{{ post.author.username }}</strong>
+                <div class="fl-label">{{ post.created_at|date:"M d, Y" }}</div>
+            </div>
+        </div>
+
+        {% if post.workout %}
+        <div class="fl-pill-row fl-log-workout">
+            <span class="fl-pill fl-pill-on">{{ post.workout.title }}</span>
+            {% if post.workout.duration_minutes %}<span class="fl-pill">{{ post.workout.duration_minutes }} min</span>{% endif %}
+            {% if post.workout.goal %}<span class="fl-pill">{{ post.workout.goal }}</span>{% endif %}
+            <span class="fl-pill">{{ post.workout.get_status_display }}</span>
+        </div>
+        {% endif %}
+
+        <div class="fl-post-copy">{{ post.content|linebreaks }}</div>
+
+        <div class="fl-log-actions">
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'like_post' post.slug %}" class="fl-like-form">
+                {% csrf_token %}
+                <button type="submit" class="fl-post-action{% if user_has_liked %} is-liked{% endif %}" data-like-button>
+                    Like <span data-like-count>{{ post.total_likes }}</span>
+                </button>
+            </form>
+            {% else %}
+            <a class="fl-post-action" href="{% url 'login' %}">Like {{ post.total_likes }}</a>
+            {% endif %}
+            <a class="fl-post-action" href="#comments">Comments {{ post.comments.count }}</a>
+        </div>
+    </div>
+</article>
+
+<section class="fl-card fl-comments" id="comments">
+    <div class="fl-label fl-lime">Comments</div>
+
+    {% if user.is_authenticated %}
+    <form method="post" class="fl-form fl-comment-form">
+        {% csrf_token %}
+        <div class="fl-field">
+            {{ form.content }}
+            {{ form.content.errors }}
+        </div>
+        <button type="submit" class="fl-btn">Add comment</button>
+    </form>
+    {% else %}
+    <p class="fl-muted">Please <a href="{% url 'login' %}">log in</a> to comment.</p>
+    {% endif %}
+
+    <div class="fl-comment-list">
+        {% for comment in comments %}
+        <div class="fl-comment">
+            <div class="fl-comment-head">
+                <strong>{{ comment.author.username }}</strong>
+                <span class="fl-label">{{ comment.created_at|date:"M d, Y" }}</span>
+            </div>
+            <div class="fl-post-copy">{{ comment.content|linebreaks }}</div>
+        </div>
+        {% empty %}
+        <p class="fl-muted">No comments yet.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const likeForms = document.querySelectorAll('.like-form');
-    
-    likeForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value,
-                },
-                body: new FormData(this)
-            })
-            .then(response => response.json())
-            .then(data => {
-                const button = this.querySelector('button');
-                const likeCount = this.querySelector('.like-count');
-                
-                if (data.liked) {
-                    button.classList.add('active');
-                } else {
-                    button.classList.remove('active');
-                }
-                
-                likeCount.textContent = data.total_likes;
-            })
-            .catch(error => console.error('Error:', error));
+document.querySelectorAll('.fl-like-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            const button = form.querySelector('[data-like-button]');
+            const count = form.querySelector('[data-like-count]');
+            if (button) button.classList.toggle('is-liked', data.liked);
+            if (count) count.textContent = data.total_likes;
         });
     });
 });
 </script>
 {% endblock %}
-{% endblock %} 

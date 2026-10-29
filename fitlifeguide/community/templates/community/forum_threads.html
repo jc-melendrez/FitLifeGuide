@@ -1,193 +1,66 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
-
-{% block title %}{{ forum.name }} - Threads{% endblock %}
+{% block title %}{{ forum.name }} - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-center my-5 px-3">
-  <div class="w-100" style="max-width: 720px;">
-    <!-- Forum Header -->
-    <div class="mb-4 pb-3 border-bottom border-secondary text-center">
-      <h2 class="text-info mb-1">
-        <i class="bi bi-chat-dots me-2"></i>{{ forum.name }}
-      </h2>
-      <p class="text-light-emphasis">{{ forum.description }}</p>
-      <a href="{% url 'thread_create' forum.slug %}" class="btn btn-primary mt-3">
-        <i class="fas fa-plus-circle me-2"></i>Start a New Discussion
-      </a>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">Forum</div>
+        <h1 class="fl-h fl-page-title">{{ forum.name }}</h1>
+        {% if forum.description %}<p class="fl-muted">{{ forum.description }}</p>{% endif %}
     </div>
-
-    <!-- Thread List -->
-    {% if threads %}
-    <div class="list-group">
-      {% for thread in threads %}
-      <div class="list-group-item mb-3 rounded bg-dark border-secondary text-light shadow-sm thread-card">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="flex-grow-1">
-            <div class="d-flex align-items-center mb-2">
-              <img src="{{ thread.author.profile.avatar.url }}" alt="{{ thread.author.username }}'s avatar" 
-                   class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover;">
-              <div>
-                <a href="{% url 'thread_detail' thread.slug %}" class="text-decoration-none">
-                  <h5 class="mb-1 text-info">{{ thread.title }}</h5>
-                </a>
-                <div class="mt-1">
-                  <small class="text-light">Started by <strong>{{ thread.author.username }}</strong></small>
-                  <small class="text-light-emphasis ms-2">{{ thread.created_at|date:"M d, Y" }}</small>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="d-flex align-items-center ms-3">
-            {% if user.is_authenticated %}
-            <form action="{% url 'like_thread' thread.slug %}" method="post" class="me-3">
-              {% csrf_token %}
-              <button type="submit" class="thread-stat like-btn {% if user in thread.likes.all %}liked{% endif %}">
-                <i class="fas fa-heart"></i>
-                <span class="d-block like-count">{{ thread.total_likes }}</span>
-              </button>
-            </form>
-            {% else %}
-            <a href="{% url 'login' %}" class="thread-stat me-3 no-hover">
-              <i class="fas fa-heart"></i>
-              <span class="d-block">{{ thread.total_likes }}</span>
-            </a>
-            {% endif %}
-            <a href="{% url 'thread_detail' thread.slug %}#replies" class="thread-stat">
-              <i class="fas fa-comment"></i>
-              <span class="d-block">{{ thread.posts.count }}</span>
-            </a>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
+    <div class="fl-pill-row">
+        <a class="fl-pill" href="{% url 'forum_list' %}">All forums</a>
+        <a class="fl-btn" href="{% url 'thread_create' forum.slug %}">+ New thread</a>
     </div>
-    {% else %}
-    <div class="alert alert-info mt-4 text-center">
-      <i class="bi bi-info-circle me-2"></i>No discussions yet. Be the first to start one!
-    </div>
-    {% endif %}
-  </div>
 </div>
 
-<!-- Optional CSS for hover effect -->
-<style>
-  .thread-card {
-    transition: 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
+<section class="fl-card fl-thread-list">
+    {% for thread in threads %}
+    <article class="fl-thread-row">
+        <img class="fl-avatar fl-avatar-xs" src="{{ thread.author.profile.avatar.url }}" alt="">
+        <div class="fl-thread-copy">
+            <a class="fl-thread-title" href="{% url 'thread_detail' thread.slug %}">{{ thread.title }}</a>
+            <div class="fl-muted">{{ thread.author.username }} &middot; {{ thread.created_at|date:"M d, Y" }}</div>
+            <p class="fl-muted">{{ thread.content|truncatewords:26 }}</p>
+        </div>
+        <div class="fl-thread-stats">
+            <form method="post" action="{% url 'like_thread' thread.slug %}" class="fl-like-form">
+                {% csrf_token %}
+                <button type="submit" class="fl-post-action{% if user in thread.likes.all %} is-liked{% endif %}" data-like-button>
+                    Like <span data-like-count>{{ thread.total_likes }}</span>
+                </button>
+            </form>
+            <a class="fl-post-action" href="{% url 'thread_detail' thread.slug %}#replies">{{ thread.posts.count }} replies</a>
+        </div>
+    </article>
+    {% empty %}
+    <div class="fl-empty">
+        <div class="fl-h">No discussions yet.</div>
+        <p class="fl-muted">Be the first to start one.</p>
+        <a class="fl-btn" href="{% url 'thread_create' forum.slug %}">Start a thread</a>
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}
 
-  .thread-card:hover {
-    background-color: #1f1f1f !important;
-    border-color: #0dcaf0 !important;
-  }
-
-  .thread-stat {
-    background-color: rgba(13, 202, 240, 0.1);
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
-    text-align: center;
-    min-width: 48px;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    color: #fff;
-  }
-
-  .thread-stat:not(.no-hover):hover {
-    background-color: rgba(13, 202, 240, 0.2);
-    transform: translateY(-1px);
-  }
-
-  .thread-stat.like-btn {
-    outline: none;
-  }
-
-  .thread-stat.like-btn:focus {
-    box-shadow: 0 0 0 2px rgba(13, 202, 240, 0.25);
-  }
-
-  .thread-stat .fa-heart {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 1rem;
-    transition: all 0.2s ease;
-  }
-
-  .thread-stat:hover .fa-heart {
-    transform: scale(1.1);
-    color: rgba(255, 77, 109, 0.7);
-  }
-
-  .thread-stat.liked .fa-heart {
-    color: #ff4d6d;
-    animation: heartBeat 0.3s ease-in-out;
-  }
-
-  .thread-stat .fa-comment {
-    color: #0dcaf0;
-    font-size: 1rem;
-    transition: transform 0.2s ease;
-  }
-
-  .thread-stat:hover .fa-comment {
-    transform: scale(1.1);
-  }
-
-  .thread-stat span {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 0.2rem;
-  }
-
-  @keyframes heartBeat {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-  }
-</style>
-
-<!-- Make sure Font Awesome is included -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const likeForms = document.querySelectorAll('form');
-  
-  likeForms.forEach(form => {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      const button = this.querySelector('button');
-      const likeCount = this.querySelector('.like-count');
-      
-      fetch(this.action, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: new FormData(this)
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.liked) {
-          button.classList.add('liked');
-          button.querySelector('.fa-heart').style.color = '#ff4d6d';
-        } else {
-          button.classList.remove('liked');
-          button.querySelector('.fa-heart').style.color = 'rgba(255, 255, 255, 0.5)';
-        }
-        
-        likeCount.textContent = data.total_likes;
-        
-        // Add animation
-        button.querySelector('.fa-heart').style.animation = 'none';
-        button.querySelector('.fa-heart').offsetHeight; // Trigger reflow
-        button.querySelector('.fa-heart').style.animation = 'heartBeat 0.3s ease-in-out';
-      })
-      .catch(error => console.error('Error:', error));
+document.querySelectorAll('.fl-like-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            const button = form.querySelector('[data-like-button]');
+            const count = form.querySelector('[data-like-count]');
+            if (button) button.classList.toggle('is-liked', data.liked);
+            if (count) count.textContent = data.total_likes;
+        });
     });
-  });
 });
 </script>
 {% endblock %}

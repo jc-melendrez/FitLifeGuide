@@ -1,15 +1,26 @@
 from django import forms
+
+from tools.models import WorkoutPlanner
+
 from .models import BlogPost, Thread, BlogComment, ForumComment, Forum
 
 
 class BlogPostForm(forms.ModelForm):
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['workout'].queryset = (
+            user.workouts.order_by('-date') if user else WorkoutPlanner.objects.none()
+        )
+
     class Meta:
         model = BlogPost
-        fields = ['title', 'content', 'published']
+        fields = ['title', 'content', 'image', 'workout', 'published']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
-            'published': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'title': forms.TextInput(attrs={'placeholder': 'Session title'}),
+            'content': forms.Textarea(attrs={'rows': 6, 'placeholder': 'How did it go?'}),
+            'image': forms.FileInput(attrs={'accept': 'image/*'}),
+            'workout': forms.Select(),
+            'published': forms.CheckboxInput(),
         }
 
 
@@ -31,14 +42,12 @@ class ThreadForm(forms.ModelForm):
         fields = ['title', 'content']
         widgets = {
             'title': forms.TextInput(attrs={
-                'class': 'form-control bg-dark text-light',
                 'placeholder': 'Enter a descriptive title for your thread'
             }),
             'content': forms.Textarea(attrs={
-                'class': 'form-control bg-dark text-light',
                 'rows': 8,
                 'placeholder': 'Write your thread content here...'
-            })
+            }),
         }
 
 
@@ -48,10 +57,10 @@ class BlogCommentForm(forms.ModelForm):
         fields = ['content']
         widgets = {
             'content': forms.Textarea(attrs={
-                'class': 'form-control',
+                'class': 'fl-input',
                 'rows': 3,
-                'placeholder': 'Write your comment here...'
-            })
+                'placeholder': 'Write your comment here...',
+            }),
         }
 
 
@@ -67,8 +76,8 @@ class ForumCommentForm(forms.ModelForm):
         fields = ['content', 'parent']
         widgets = {
             'content': forms.Textarea(attrs={
-                'class': 'form-control',
+                'class': 'fl-input',
                 'rows': 3,
-                'placeholder': 'Write your reply here...'
-            })
+                'placeholder': 'Write your reply here...',
+            }),
         }
