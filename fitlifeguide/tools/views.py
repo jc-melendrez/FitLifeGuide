@@ -1,16 +1,36 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from datetime import datetime, timedelta
+
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from datetime import datetime, timedelta
-from .models import MealPlan, MealPlanner, WeekDay, WorkoutPlan, WorkoutPlanner
+
+from fitlifeguide.domain import MEAL_STATUS, MEAL_TYPES, WEEKDAYS, label_for
+
 from .forms import MealPlannerForm, WorkoutPlanForm
 from .plan import PLAN_VIEWS, copy_previous_week, get_plan_context, parse_week
-
-# Create your views here.
+from .repositories import (
+    MEAL_ORDER,
+    add_meal as create_meal,
+    add_workout as create_workout,
+    community_meals,
+    community_workouts,
+    delete_meal as remove_meal,
+    delete_workout as remove_workout,
+    get_meal,
+    get_workout,
+    list_meals_between,
+    list_workouts_between,
+    set_meal_status,
+    set_workout_status,
+    skip_today as mark_today_missed,
+    update_meal,
+    update_workout,
+)
 
 
 def _next_url(request):
@@ -28,11 +48,7 @@ def _next_url(request):
 def plan(request):
     week_start = parse_week(request.GET.get('week'))
     view = request.GET.get('view', 'both')
-    return render(
-        request,
-        'tools/plan.html',
-        get_plan_context(request.user, week_start, view),
-    )
+    return render(request, 'tools/plan.html', get_plan_context(request.user, week_start, view))
 
 
 @login_required
@@ -50,249 +66,187 @@ def copy_last_week(request):
         )
     else:
         messages.info(request, 'Nothing new to copy from last week.')
-    return redirect(
-        f"{reverse('tools:plan')}?week={week_start:%Y-%m-%d}&view={view}"
-    )
+    return redirect(f"{reverse('tools:plan')}?week={week_start:%Y-%m-%d}&view={view}")
+
+
+def _week_start_from_request(request):
+    week_start = parse_week(request.GET.get('week'))
+    direction = request.GET.get('direction')
+    if direction == 'next':
+        week_start += timedelta(days=7)
+    elif direction == 'prev':
+        week_start -= timedelta(days=7)
+    return week_start
+
 
 @login_required
 def meal_planner(request):
-    # Get or create meal plan for the user
-    meal_plan, created = MealPlan.objects.get_or_create(user=request.user)
-    
-    # Get the requested week or default to current week
-    requested_week = request.GET.get('week')
-    direction = request.GET.get('direction')
-    
-    if requested_week:
-        try:
-            week_start = datetime.strptime(requested_week, '%Y-%m-%d').date()
-            if direction == 'next':
-                week_start += timedelta(days=7)
-            elif direction == 'prev':
-                week_start -= timedelta(days=7)
-        except ValueError:
-            week_start = timezone.now().date() - timedelta(days=timezone.now().date().weekday())
-    else:
-        # Get the current date and week start
-        week_start = timezone.now().date() - timedelta(days=timezone.now().date().weekday())
-    
-    # Calculate week end
+    week_start = _week_start_from_request(request)
     week_end = week_start + timedelta(days=6)
-    
-    # Get all meals for the selected week
-    meals = MealPlanner.objects.filter(
-        user=request.user,
-        week_start=week_start
-    ).order_by('date', 'meal_type')
-    
-    # Create a structured week plan
+    meals = list_meals_between(request.user.id, week_start, week_end)
     week_plan = {}
-    for day in WeekDay.choices:
-        day_code, day_name = day
+    for index, (day_code, day_name) in enumerate(WEEKDAYS):
         week_plan[day_code] = {
-            'date': week_start + timedelta(days=WeekDay.values.index(day_code)),
-            'meals': {
-                'breakfast': None,
-                'lunch': None,
-                'dinner': None,
-                'snack': None
-            }
+            'date': week_start + timedelta(days=index),
+            'meals': {meal_type: None for meal_type in MEAL_ORDER},
         }
-    
-    # Fill in the meals
     for meal in meals:
-        week_plan[meal.day_of_week]['meals'][meal.meal_type] = meal
-    
-    # Get other users' meals (limited to latest 10)
-    other_meals = MealPlanner.objects.exclude(user=request.user).order_by('-date')[:10]
-    
-    context = {
-        'meal_plan': meal_plan,
+        if meal.day_of_week in week_plan and meal.meal_type in MEAL_ORDER:
+            week_plan[meal.day_of_week]['meals'][meal.meal_type] = meal
+
+    return render(request, 'tools/meal_planner.html', {
+        'meal_plan': {'name': 'My Meal Plan'},
         'week_plan': week_plan,
         'week_start': week_start,
         'week_end': week_end,
-        'other_meals': other_meals,
-    }
-    
-    return render(request, 'tools/meal_planner.html', context)
+        'other_meals': community_meals(request.user.id, limit=3),
+    })
+
 
 @login_required
 def add_meal(request, date=None, meal_type=None):
-    # Get date and meal type from URL parameters
     date = request.GET.get('date')
     meal_type = request.GET.get('meal_type')
-    
     if not date or not meal_type:
         messages.error(request, 'Date and meal type are required.')
         return redirect('tools:meal_planner')
-    
+
     try:
         meal_date = datetime.strptime(date, '%Y-%m-%d').date()
-        day_name = WeekDay.choices[meal_date.weekday()][1]  # Get full day name
     except ValueError:
         messages.error(request, 'Invalid date format.')
         return redirect('tools:meal_planner')
 
     next_url = _next_url(request)
-
     if request.method == 'POST':
         form = MealPlannerForm(request.POST)
         if form.is_valid():
-            meal = form.save(commit=False)
-            meal.user = request.user
-            meal_plan, _ = MealPlan.objects.get_or_create(user=request.user)
-            meal.meal_plan = meal_plan
-            meal.date = meal_date
-            meal.meal_type = meal_type
-            meal.week_start = meal_date - timedelta(days=meal_date.weekday())
-            meal.day_of_week = WeekDay.choices[meal_date.weekday()][0]
-            meal.save()
+            create_meal(
+                request.user,
+                meal_date,
+                meal_type,
+                form.cleaned_data['food_items'],
+                form.cleaned_data.get('calories'),
+                form.cleaned_data.get('notes', ''),
+            )
             messages.success(request, 'Meal added successfully!')
             return redirect(next_url or 'tools:meal_planner')
     else:
         form = MealPlannerForm()
 
-    context = {
+    return render(request, 'tools/add_meal.html', {
         'form': form,
         'date': meal_date,
-        'day_name': day_name,
-        'meal_type': meal_type.title(),
+        'day_name': WEEKDAYS[meal_date.weekday()][1],
+        'meal_type': label_for(MEAL_TYPES, meal_type),
         'next': next_url or '',
-    }
+    })
 
-    return render(request, 'tools/add_meal.html', context)
 
 @login_required
 def edit_meal(request, meal_id):
-    meal = get_object_or_404(MealPlanner, id=meal_id, user=request.user)
-    day_name = WeekDay.choices[meal.date.weekday()][1]
+    meal = get_meal(meal_id, request.user.id)
+    if not meal:
+        raise Http404('Meal not found')
     next_url = _next_url(request)
 
     if request.method == 'POST':
-        form = MealPlannerForm(request.POST, instance=meal)
+        form = MealPlannerForm(request.POST)
         if form.is_valid():
-            form.save()
+            update_meal(
+                meal,
+                form.cleaned_data['food_items'],
+                form.cleaned_data.get('calories'),
+                form.cleaned_data.get('notes', ''),
+            )
             messages.success(request, 'Meal updated successfully!')
             return redirect(next_url or 'tools:meal_planner')
     else:
-        form = MealPlannerForm(instance=meal)
+        form = MealPlannerForm(initial={
+            'food_items': meal.food_items,
+            'calories': meal.calories,
+            'notes': meal.notes,
+        })
 
     return render(request, 'tools/add_meal.html', {
         'form': form,
         'meal': meal,
         'date': meal.date,
-        'day_name': day_name,
-        'meal_type': meal.meal_type.title(),
+        'day_name': WEEKDAYS[meal.date.weekday()][1],
+        'meal_type': meal.get_meal_type_display,
         'next': next_url or '',
     })
 
+
 @login_required
 def delete_meal(request, meal_id):
-    meal = get_object_or_404(MealPlanner, id=meal_id, user=request.user)
+    meal = get_meal(meal_id, request.user.id)
+    if not meal:
+        raise Http404('Meal not found')
     if request.method == 'POST':
-        meal.delete()
+        remove_meal(meal.id)
         messages.success(request, 'Meal deleted successfully!')
     return redirect('tools:meal_planner')
 
+
 @login_required
 def update_meal_status(request, meal_id):
-    meal = get_object_or_404(MealPlanner, id=meal_id, user=request.user)
+    meal = get_meal(meal_id, request.user.id)
+    if not meal:
+        raise Http404('Meal not found')
     if request.method == 'POST':
         status = request.POST.get('status')
-        if status in dict(MealPlanner.STATUS_CHOICES):
-            meal.status = status
-            meal.save()
+        if status in dict(MEAL_STATUS):
+            set_meal_status(meal.id, status)
             messages.success(request, f'Meal marked as {status}!')
     return redirect('tools:meal_planner')
 
+
 @login_required
 def workout_hub(request):
-    # Get or create workout plan for the user
-    workout_plan, created = WorkoutPlan.objects.get_or_create(user=request.user)
-    
-    # Get the requested week or default to current week
-    requested_week = request.GET.get('week')
-    direction = request.GET.get('direction')
-    
-    if requested_week:
-        try:
-            week_start = datetime.strptime(requested_week, '%Y-%m-%d').date()
-            if direction == 'next':
-                week_start += timedelta(days=7)
-            elif direction == 'prev':
-                week_start -= timedelta(days=7)
-        except ValueError:
-            week_start = timezone.now().date() - timedelta(days=timezone.now().date().weekday())
-    else:
-        # Get the current date and week start
-        week_start = timezone.now().date() - timedelta(days=timezone.now().date().weekday())
-    
-    # Calculate week end
+    week_start = _week_start_from_request(request)
     week_end = week_start + timedelta(days=6)
-    
-    # Get user's workouts for the selected week
-    user_workouts = WorkoutPlanner.objects.filter(
-        user=request.user,
-        week_start=week_start
-    ).order_by('date')
-    
-    # Create a structured week plan
+    user_workouts = list_workouts_between(request.user.id, week_start, week_end)
+    workouts_by_date = {workout.date: workout for workout in user_workouts}
     week_plan = {}
-    for day in WeekDay.choices:
-        day_code, day_name = day
-        current_date = week_start + timedelta(days=WeekDay.values.index(day_code))
+    for index, (_, day_name) in enumerate(WEEKDAYS):
+        current_date = week_start + timedelta(days=index)
         week_plan[day_name] = {
             'date': current_date,
-            'workout': None
+            'workout': workouts_by_date.get(current_date),
         }
-    
-    # Fill in the workouts
-    for workout in user_workouts:
-        week_plan[WeekDay(workout.day_of_week).label]['workout'] = workout
-    
-    # Get other users' public workouts (limited to latest 10)
-    other_workouts = WorkoutPlanner.objects.exclude(user=request.user).order_by('-date')[:10]
-    
-    context = {
-        'workout_plan': workout_plan,
+
+    return render(request, 'tools/workout_hub.html', {
+        'workout_plan': {'name': 'My Workout Plan'},
         'week_plan': week_plan,
         'user_workouts': user_workouts,
-        'other_workouts': other_workouts,
+        'other_workouts': community_workouts(request.user.id, limit=3),
         'week_start': week_start,
         'week_end': week_end,
-    }
-    
-    return render(request, 'tools/workout_hub.html', context)
+    })
+
 
 @login_required
 def add_workout(request):
-    # Get date from URL parameters or use current date
     date_str = request.GET.get('date')
-    if date_str:
-        try:
-            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except ValueError:
-            selected_date = timezone.now().date()
-    else:
-        selected_date = timezone.now().date()
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else timezone.localdate()
+    except ValueError:
+        selected_date = timezone.localdate()
 
     next_url = _next_url(request)
-
     if request.method == 'POST':
         form = WorkoutPlanForm(request.POST)
         if form.is_valid():
-            workout = form.save(commit=False)
-            workout.user = request.user
-            workout_plan, _ = WorkoutPlan.objects.get_or_create(user=request.user)
-            workout.workout_plan = workout_plan
-
-            # Use the selected date to set week_start and day_of_week
-            workout_date = form.cleaned_data['date']
-            workout.date = workout_date
-            workout.week_start = workout_date - timedelta(days=workout_date.weekday())
-            workout.day_of_week = WeekDay.choices[workout_date.weekday()][0]
-
-            workout.save()
+            create_workout(
+                request.user,
+                form.cleaned_data['date'],
+                form.cleaned_data['title'],
+                form.cleaned_data.get('exercises', ''),
+                form.cleaned_data.get('duration_minutes'),
+                form.cleaned_data.get('goal', ''),
+                form.cleaned_data.get('notes', ''),
+            )
             messages.success(request, 'Workout added successfully!')
             return redirect(next_url or 'tools:workout_hub')
     else:
@@ -304,24 +258,37 @@ def add_workout(request):
         'next': next_url or '',
     })
 
+
 @login_required
 def edit_workout(request, workout_id):
-    workout = get_object_or_404(WorkoutPlanner, id=workout_id, user=request.user)
+    workout = get_workout(workout_id, request.user.id)
+    if not workout:
+        raise Http404('Workout not found')
     next_url = _next_url(request)
 
     if request.method == 'POST':
-        form = WorkoutPlanForm(request.POST, instance=workout)
+        form = WorkoutPlanForm(request.POST)
         if form.is_valid():
-            workout = form.save(commit=False)
-            # Update week_start and day_of_week if date changes
-            workout_date = form.cleaned_data['date']
-            workout.week_start = workout_date - timedelta(days=workout_date.weekday())
-            workout.day_of_week = WeekDay.choices[workout_date.weekday()][0]
-            workout.save()
+            update_workout(
+                workout,
+                form.cleaned_data['date'],
+                form.cleaned_data['title'],
+                form.cleaned_data.get('exercises', ''),
+                form.cleaned_data.get('duration_minutes'),
+                form.cleaned_data.get('goal', ''),
+                form.cleaned_data.get('notes', ''),
+            )
             messages.success(request, 'Workout updated successfully!')
             return redirect(next_url or 'tools:workout_hub')
     else:
-        form = WorkoutPlanForm(instance=workout)
+        form = WorkoutPlanForm(initial={
+            'date': workout.date,
+            'title': workout.title,
+            'exercises': workout.exercises,
+            'duration_minutes': workout.duration_minutes,
+            'goal': workout.goal,
+            'notes': workout.notes,
+        })
 
     return render(request, 'tools/edit_workout.html', {
         'form': form,
@@ -329,22 +296,27 @@ def edit_workout(request, workout_id):
         'next': next_url or '',
     })
 
+
 @login_required
 def delete_workout(request, workout_id):
-    workout = get_object_or_404(WorkoutPlanner, id=workout_id, user=request.user)
+    workout = get_workout(workout_id, request.user.id)
+    if not workout:
+        raise Http404('Workout not found')
     if request.method == 'POST':
-        workout.delete()
+        remove_workout(workout.id)
         messages.success(request, 'Workout deleted successfully!')
     return redirect('tools:workout_hub')
 
+
 @login_required
 def update_workout_status(request, workout_id):
-    workout = get_object_or_404(WorkoutPlanner, id=workout_id, user=request.user)
+    workout = get_workout(workout_id, request.user.id)
+    if not workout:
+        raise Http404('Workout not found')
     if request.method == 'POST':
         status = request.POST.get('status')
-        if status in dict(WorkoutPlanner.STATUS_CHOICES):
-            workout.status = status
-            workout.save()
+        if status in ('planned', 'completed', 'missed'):
+            set_workout_status(workout.id, status)
             messages.success(request, f'Workout marked as {status}!')
     return redirect('tools:workout_hub')
 
@@ -352,11 +324,7 @@ def update_workout_status(request, workout_id):
 @login_required
 def skip_today(request):
     if request.method == 'POST':
-        updated = WorkoutPlanner.objects.filter(
-            user=request.user,
-            date=timezone.localdate(),
-            status='planned',
-        ).update(status='missed')
+        updated = mark_today_missed(request.user.id)
         if updated:
             messages.success(request, 'Today marked as missed.')
         else:

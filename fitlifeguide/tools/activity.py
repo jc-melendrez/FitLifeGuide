@@ -2,13 +2,12 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from videos.models import VideoHistory
+from fitlifeguide.domain import MEAL_TYPES, label_for
+from videos.repositories import get_resume_video
 
-from .models import MealPlanner, WorkoutPlanner
-
+from .repositories import MEAL_ORDER, list_meals_between, list_workouts_between
 
 WEEKLY_WORKOUT_GOAL = 5
-MEAL_ORDER = ('breakfast', 'lunch', 'dinner')
 
 
 def _monday(day):
@@ -29,34 +28,19 @@ def get_today_context(user, day=None):
     week_start = _monday(day)
     week_end = week_start + timedelta(days=6)
 
-    workout_list = list(
-        WorkoutPlanner.objects.filter(
-            user=user,
-            date__range=(week_start, week_end),
-        ).order_by('date', 'id')
-    )
-    meal_list = list(
-        MealPlanner.objects.filter(
-            user=user,
-            date__range=(week_start, week_end),
-        ).order_by('date', 'meal_type')
-    )
+    workout_list = list_workouts_between(user.id, week_start, week_end)
+    meal_list = list_meals_between(user.id, week_start, week_end)
 
     today_workout = next((workout for workout in workout_list if workout.date == day), None)
     today_meals = {meal.meal_type: meal for meal in meal_list if meal.date == day}
 
-    meal_types = list(MEAL_ORDER)
-    if 'snack' in today_meals:
-        meal_types.append('snack')
-
-    meal_labels = dict(MealPlanner.MEAL_TYPE_CHOICES)
     meal_rows = []
-    for meal_type in meal_types:
+    for meal_type in MEAL_ORDER:
         meal = today_meals.get(meal_type)
         meal_rows.append({
-            'label': meal_labels[meal_type],
+            'label': label_for(MEAL_TYPES, meal_type),
             'meal': meal,
-            'status': meal.get_status_display() if meal else 'Not planned',
+            'status': meal.get_status_display if meal else 'Not planned',
         })
 
     workouts_by_date = {}
@@ -101,5 +85,5 @@ def get_today_context(user, day=None):
         'week_goal': WEEKLY_WORKOUT_GOAL,
         'streak': streak,
         'ring_dash': f'{circumference * ring_ratio:.1f} {circumference:.1f}',
-        'resume_video': VideoHistory.objects.filter(user=user).first(),
+        'resume_video': get_resume_video(user.id),
     }

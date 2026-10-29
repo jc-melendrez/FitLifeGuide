@@ -1,13 +1,19 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from django.db import transaction
 from django.utils import timezone
 
-from .models import MealPlan, MealPlanner, WeekDay, WorkoutPlan, WorkoutPlanner
+from fitlifeguide.domain import MEAL_TYPES, label_for
 
+from .repositories import (
+    MEAL_ORDER,
+    community_meals,
+    community_workouts,
+    copy_previous_week as copy_week,
+    list_meals_between,
+    list_workouts_between,
+)
 
-MEAL_ORDER = ('breakfast', 'lunch', 'dinner', 'snack')
 PLAN_VIEWS = ('both', 'meals', 'workouts')
 
 
@@ -30,18 +36,8 @@ def get_plan_context(user, week_start, view='both'):
     today = timezone.localdate()
     today_in_week = week_start <= today <= week_end
 
-    workouts = list(
-        WorkoutPlanner.objects.filter(
-            user=user,
-            date__range=(week_start, week_end),
-        ).order_by('date', 'id')
-    )
-    meals = list(
-        MealPlanner.objects.filter(
-            user=user,
-            date__range=(week_start, week_end),
-        ).order_by('date', 'meal_type')
-    )
+    workouts = list_workouts_between(user.id, week_start, week_end)
+    meals = list_meals_between(user.id, week_start, week_end)
 
     workouts_by_date = {}
     for workout in workouts:
@@ -51,7 +47,6 @@ def get_plan_context(user, week_start, view='both'):
     for meal in meals:
         meals_by_date[meal.date][meal.meal_type] = meal
 
-    meal_labels = dict(MealPlanner.MEAL_TYPE_CHOICES)
     days = []
     for offset in range(7):
         day = week_start + timedelta(days=offset)
@@ -60,7 +55,7 @@ def get_plan_context(user, week_start, view='both'):
         meal_rows = [
             {
                 'type': meal_type,
-                'label': meal_labels[meal_type],
+                'label': label_for(MEAL_TYPES, meal_type),
                 'meal': day_meals.get(meal_type),
             }
             for meal_type in MEAL_ORDER
@@ -102,17 +97,6 @@ def get_plan_context(user, week_start, view='both'):
             'is_today': day == today,
         })
 
-    community_meals = list(
-        MealPlanner.objects.exclude(user=user)
-        .select_related('user')
-        .order_by('-date')[:3]
-    )
-    community_workouts = list(
-        WorkoutPlanner.objects.exclude(user=user)
-        .select_related('user')
-        .order_by('-date')[:3]
-    )
-
     return {
         'week_start': week_start,
         'week_end': week_end,
@@ -122,64 +106,10 @@ def get_plan_context(user, week_start, view='both'):
         'view': view,
         'today_in_week': today_in_week,
         'days': days,
-        'community_meals': community_meals,
-        'community_workouts': community_workouts,
+        'community_meals': community_meals(user.id, limit=3),
+        'community_workouts': community_workouts(user.id, limit=3),
     }
 
 
-@transaction.atomic
 def copy_previous_week(user, target_week_start):
-    source_start = target_week_start - timedelta(days=7)
-    source_end = source_start + timedelta(days=6)
-    meal_plan, _ = MealPlan.objects.get_or_create(user=user)
-    workout_plan, _ = WorkoutPlan.objects.get_or_create(user=user)
-    copied_meals = 0
-    copied_workouts = 0
-
-    source_meals = MealPlanner.objects.filter(
-        user=user,
-        date__range=(source_start, source_end),
-    )
-    for meal in source_meals:
-        target_date = meal.date + timedelta(days=7)
-        _, created = MealPlanner.objects.get_or_create(
-            user=user,
-            date=target_date,
-            meal_type=meal.meal_type,
-            defaults={
-                'meal_plan': meal_plan,
-                'week_start': target_week_start,
-                'day_of_week': WeekDay.choices[target_date.weekday()][0],
-                'food_items': meal.food_items,
-                'calories': meal.calories,
-                'notes': meal.notes,
-                'status': 'planned',
-            },
-        )
-        if created:
-            copied_meals += 1
-
-    source_workouts = WorkoutPlanner.objects.filter(
-        user=user,
-        date__range=(source_start, source_end),
-    )
-    for workout in source_workouts:
-        target_date = workout.date + timedelta(days=7)
-        if WorkoutPlanner.objects.filter(user=user, date=target_date).exists():
-            continue
-        WorkoutPlanner.objects.create(
-            user=user,
-            workout_plan=workout_plan,
-            date=target_date,
-            week_start=target_week_start,
-            day_of_week=WeekDay.choices[target_date.weekday()][0],
-            title=workout.title,
-            exercises=workout.exercises,
-            duration_minutes=workout.duration_minutes,
-            goal=workout.goal,
-            notes=workout.notes,
-            status='planned',
-        )
-        copied_workouts += 1
-
-    return copied_meals, copied_workouts
+    return copy_week(user, target_week_start)

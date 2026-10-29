@@ -26,11 +26,11 @@
         <div class="fl-thread-stats">
             <form method="post" action="{% url 'like_thread' thread.slug %}" class="fl-like-form">
                 {% csrf_token %}
-                <button type="submit" class="fl-post-action{% if user in thread.likes.all %} is-liked{% endif %}" data-like-button>
+                <button type="submit" class="fl-post-action{% if thread.liked_by_me %} is-liked{% endif %}" data-like-button>
                     Like <span data-like-count>{{ thread.total_likes }}</span>
                 </button>
             </form>
-            <a class="fl-post-action" href="{% url 'thread_detail' thread.slug %}#replies">{{ thread.posts.count }} replies</a>
+            <a class="fl-post-action" href="{% url 'thread_detail' thread.slug %}#replies">{{ thread.reply_count }} replies</a>
         </div>
     </article>
     {% empty %}

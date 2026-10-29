@@ -1,83 +1,48 @@
 from django import forms
 
-from tools.models import WorkoutPlanner
-
-from .models import BlogPost, Thread, BlogComment, ForumComment, Forum
+from tools.repositories import list_workouts_by_user
 
 
-class BlogPostForm(forms.ModelForm):
+class BlogPostForm(forms.Form):
+    title = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Session title'}))
+    content = forms.CharField(widget=forms.Textarea(attrs={'rows': 6, 'placeholder': 'How did it go?'}))
+    image = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={'accept': 'image/*'}),
+    )
+    workout = forms.ChoiceField(required=False, widget=forms.Select())
+    published = forms.BooleanField(required=False, widget=forms.CheckboxInput())
+
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['workout'].queryset = (
-            user.workouts.order_by('-date') if user else WorkoutPlanner.objects.none()
-        )
-
-    class Meta:
-        model = BlogPost
-        fields = ['title', 'content', 'image', 'workout', 'published']
-        widgets = {
-            'title': forms.TextInput(attrs={'placeholder': 'Session title'}),
-            'content': forms.Textarea(attrs={'rows': 6, 'placeholder': 'How did it go?'}),
-            'image': forms.FileInput(attrs={'accept': 'image/*'}),
-            'workout': forms.Select(),
-            'published': forms.CheckboxInput(),
-        }
+        workouts = list_workouts_by_user(user.id, limit=30) if user else []
+        self.fields['workout'].choices = [('', 'No workout')] + [
+            (workout.id, f'{workout.date} - {workout.title}') for workout in workouts
+        ]
 
 
-class ThreadCreateForm(forms.ModelForm):
-    forum = forms.ModelChoiceField(queryset=Forum.objects.all(), empty_label="Select a forum")
-
-    class Meta:
-        model = Thread
-        fields = ['forum', 'title']
-        widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Thread Title'}),
-            'forum': forms.Select(attrs={'class': 'form-select'}),
-        }
+class ThreadForm(forms.Form):
+    title = forms.CharField(widget=forms.TextInput(attrs={
+        'placeholder': 'Enter a descriptive title for your thread',
+    }))
+    content = forms.CharField(widget=forms.Textarea(attrs={
+        'rows': 8,
+        'placeholder': 'Write your thread content here...',
+    }))
 
 
-class ThreadForm(forms.ModelForm):
-    class Meta:
-        model = Thread
-        fields = ['title', 'content']
-        widgets = {
-            'title': forms.TextInput(attrs={
-                'placeholder': 'Enter a descriptive title for your thread'
-            }),
-            'content': forms.Textarea(attrs={
-                'rows': 8,
-                'placeholder': 'Write your thread content here...'
-            }),
-        }
+class BlogCommentForm(forms.Form):
+    content = forms.CharField(widget=forms.Textarea(attrs={
+        'class': 'fl-input',
+        'rows': 3,
+        'placeholder': 'Write your comment here...',
+    }))
 
 
-class BlogCommentForm(forms.ModelForm):
-    class Meta:
-        model = BlogComment
-        fields = ['content']
-        widgets = {
-            'content': forms.Textarea(attrs={
-                'class': 'fl-input',
-                'rows': 3,
-                'placeholder': 'Write your comment here...',
-            }),
-        }
-
-
-class ForumCommentForm(forms.ModelForm):
-    parent = forms.ModelChoiceField(
-        queryset=ForumComment.objects.all(),
-        required=False,
-        widget=forms.HiddenInput()
-    )
-
-    class Meta:
-        model = ForumComment
-        fields = ['content', 'parent']
-        widgets = {
-            'content': forms.Textarea(attrs={
-                'class': 'fl-input',
-                'rows': 3,
-                'placeholder': 'Write your reply here...',
-            }),
-        }
+class ForumCommentForm(forms.Form):
+    content = forms.CharField(widget=forms.Textarea(attrs={
+        'class': 'fl-input',
+        'rows': 3,
+        'placeholder': 'Write your reply here...',
+    }))
+    parent = forms.CharField(required=False, widget=forms.HiddenInput())

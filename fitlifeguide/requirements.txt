@@ -1,14 +1,11 @@
-create a virtual environment
-
 Django>=5.2.1
 crispy-bootstrap5>=0.7
 django-crispy-forms>=2.1
 django-widget-tweaks>=1.4.12
 Pillow>=10.0.0
+whitenoise>=6.7
 isodate>=0.6.1
 requests>=2.31.0
-django-mptt>=0.15.0
 python-dotenv>=1.0.0
-django-environ>=0.11.2
-django-sendgrid-v5>=1.2.3
-sendgrid>=6.10.0
+firebase-admin>=7.7.0
+vercel-blob>=0.5.0

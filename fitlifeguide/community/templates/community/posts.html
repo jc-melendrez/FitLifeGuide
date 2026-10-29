@@ -59,14 +59,14 @@
                     {% if user.is_authenticated %}
                     <form method="post" action="{% url 'like_post' post.slug %}" class="fl-like-form">
                         {% csrf_token %}
-                        <button type="submit" class="fl-post-action{% if user in post.likes.all %} is-liked{% endif %}" data-like-button>
+                        <button type="submit" class="fl-post-action{% if post.liked_by_me %} is-liked{% endif %}" data-like-button>
                             Like <span data-like-count>{{ post.total_likes }}</span>
                         </button>
                     </form>
                     {% else %}
                     <a class="fl-post-action" href="{% url 'login' %}">Like {{ post.total_likes }}</a>
                     {% endif %}
-                    <a class="fl-post-action" href="{% url 'post_detail' post.slug %}#comments">Comments {{ post.comments.count }}</a>
+                    <a class="fl-post-action" href="{% url 'post_detail' post.slug %}#comments">Comments {{ post.comment_count }}</a>
                 </div>
             </div>
         </article>

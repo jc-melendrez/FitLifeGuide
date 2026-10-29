@@ -52,7 +52,7 @@
             {% else %}
             <a class="fl-post-action" href="{% url 'login' %}">Like {{ post.total_likes }}</a>
             {% endif %}
-            <a class="fl-post-action" href="#comments">Comments {{ post.comments.count }}</a>
+            <a class="fl-post-action" href="#comments">Comments {{ post.comment_count }}</a>
         </div>
     </div>
 </article>

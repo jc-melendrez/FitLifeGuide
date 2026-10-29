@@ -1,5 +1,4 @@
 {% extends 'mainpage/base.html' %}
-{% load mptt_tags %}
 {% block title %}{{ thread.title }} - FitLifeGuide{% endblock %}
 
 {% block content %}
@@ -36,7 +35,7 @@
         {% else %}
         <a class="fl-post-action" href="{% url 'login' %}">Like {{ thread.total_likes }}</a>
         {% endif %}
-        <span class="fl-post-action">{{ posts.count }} replies</span>
+        <span class="fl-post-action">{{ thread.reply_count }} replies</span>
     </div>
 </article>
 
@@ -75,7 +74,7 @@
             {% if user.is_authenticated %}
             <form method="post" action="{% url 'like_forum_post' post.id %}" class="fl-like-form">
                 {% csrf_token %}
-                <button type="submit" class="fl-post-action{% if user in post.likes.all %} is-liked{% endif %}" data-like-button>
+                <button type="submit" class="fl-post-action{% if post.liked_by_me %} is-liked{% endif %}" data-like-button>
                     Like <span data-like-count>{{ post.total_likes }}</span>
                 </button>
             </form>
@@ -85,39 +84,9 @@
 
         {% if post.comments.exists %}
         <div class="fl-comment-tree">
-            {% recursetree post.comments.all %}
-            <div class="fl-comment" id="comment-{{ node.id }}">
-                <div class="fl-comment-head">
-                    <img class="fl-avatar fl-avatar-xs" src="{{ node.author.profile.avatar.url }}" alt="">
-                    <div>
-                        <strong>{{ node.author.username }}</strong>
-                        <div class="fl-label">{{ node.created_at|date:"M d, Y" }}</div>
-                    </div>
-                    {% if user == node.author %}
-                    <form method="post" action="{% url 'delete_comment' node.id %}" class="fl-inline-form">
-                        {% csrf_token %}
-                        <button type="submit" class="fl-post-action" onclick="return confirm('Delete this comment?')">Delete</button>
-                    </form>
-                    {% endif %}
-                </div>
-                <div class="fl-post-copy">{{ node.content|linebreaks }}</div>
-                <div class="fl-log-actions">
-                    {% if user.is_authenticated %}
-                    <form method="post" action="{% url 'like_comment' node.id %}" class="fl-like-form">
-                        {% csrf_token %}
-                        <button type="submit" class="fl-post-action{% if user in node.likes.all %} is-liked{% endif %}" data-like-button>
-                            Like <span data-like-count>{{ node.total_likes }}</span>
-                        </button>
-                    </form>
-                    <button type="button" class="fl-post-action fl-reply-btn" data-post-id="{{ post.id }}" data-parent-id="{{ node.id }}">Reply</button>
-                    {% endif %}
-                </div>
-                {% if not node.is_leaf_node %}
-                <button type="button" class="fl-post-action fl-toggle-replies" data-target="#replies-{{ node.id }}" data-count="{{ node.get_descendant_count }}">{{ node.get_descendant_count }} replies ></button>
-                <div id="replies-{{ node.id }}" class="fl-comment-children" hidden>{{ children }}</div>
-                {% endif %}
-            </div>
-            {% endrecursetree %}
+            {% for node in post.comments %}
+            {% include "community/_comment_node.html" with node=node post=post %}
+            {% endfor %}
         </div>
         {% endif %}
     </article>

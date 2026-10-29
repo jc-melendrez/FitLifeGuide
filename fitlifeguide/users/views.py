@@ -1,126 +1,157 @@
-from django.shortcuts import render,redirect
-from django.contrib.auth import authenticate, login
-from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
-from django.contrib.auth.models import User
-from django.contrib import messages
-from django.contrib.auth.views import LoginView
-from .forms import CustomLoginForm
-from django.contrib.auth.decorators import login_required
-from community.models import BlogPost
-from tools.models import MealPlanner, WorkoutPlanner
-from videos.models import VideoHistory
-from .models import Profile, EmailOTP
-from django.http import JsonResponse
-from django.urls import reverse
 import logging
-import secrets
-from django.conf import settings
-from django.utils import timezone
-from django.http import HttpResponseBadRequest
-from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 
-from .forms import OTPForm
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
+from django.core.mail import EmailMultiAlternatives
+from django.http import HttpResponseBadRequest, JsonResponse
+from django.shortcuts import redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+
+from fitlifeguide.domain import PROFILE_STATUS, label_for
+from fitlifeguide.storage import delete_image, upload_image
+
+from .forms import CustomLoginForm, OTPForm, ProfileUpdateForm, UserRegisterForm, UserUpdateForm
+from .repositories import (
+    create_otp,
+    delete_otp,
+    get_otp,
+    get_user,
+    set_status,
+    update_profile,
+    update_user,
+)
 
 logger = logging.getLogger(__name__)
 
 
+def send_otp_email(user, otp):
+    html_content = render_to_string('users/otp_email.html', {'user': user, 'otp': otp})
+    text_content = f'Your OTP for FitLifeGuide login is: {otp}\nThis code will expire in 5 minutes.'
+    msg = EmailMultiAlternatives(
+        'Your FitLifeGuide Login Code',
+        text_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+    )
+    msg.attach_alternative(html_content, 'text/html')
+    msg.send()
 
 
-
-
-
+def send_welcome_email(user):
+    if not user.email:
+        return
+    html_content = render_to_string('users/welcome_email.html', {'username': user.username})
+    text_content = (
+        f"Hi {user.username},\n\nThank you for registering with FitLifeGuide. "
+        "We're excited to help you reach your fitness goals.\n\n"
+        'If you have any questions, feel free to reply to this email.\n\n'
+        '- The FitLifeGuide Team'
+    )
+    msg = EmailMultiAlternatives(
+        'Welcome to FitLifeGuide!',
+        text_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+    )
+    msg.attach_alternative(html_content, 'text/html')
+    try:
+        msg.send()
+    except Exception:
+        logger.exception('Welcome email failed for %s', user.email)
 
 
 def register(request):
     if request.user.is_authenticated:
         return redirect('home')
-    
+
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Account created for {username}! You can now log in.')
+            user = form.save()
+            send_welcome_email(user)
+            messages.success(request, f'Account created for {user.username}! You can now log in.')
             return redirect('login')
     else:
         form = UserRegisterForm()
     return render(request, 'users/register.html', {'form': form})
 
 
-
-
-
 @login_required
 def profile(request):
-    # Get or create profile for the user
-    profile = Profile.get_or_create_profile(request.user)
-    
+    user = get_user(request.user.id) or request.user
+
     if request.method == 'POST':
-        u_form = UserUpdateForm(request.POST, instance=request.user)
-        p_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
-
+        u_form = UserUpdateForm(request.POST, user=user)
+        p_form = ProfileUpdateForm(request.POST, request.FILES, profile=user.profile)
         if u_form.is_valid() and p_form.is_valid():
-            u_form.save()
-            p_form.save()
-            messages.success(request, 'Your profile has been updated!')
-            return redirect('profile')
+            try:
+                updated = update_user(
+                    user,
+                    u_form.cleaned_data['username'],
+                    u_form.cleaned_data['email'],
+                )
+            except ValueError as exc:
+                u_form.add_error(None, str(exc))
+            else:
+                avatar = p_form.cleaned_data.get('avatar')
+                cover = p_form.cleaned_data.get('cover_image')
+                avatar_url = user.profile.avatar_url
+                cover_url = user.profile.cover_url
+                try:
+                    if avatar:
+                        new_avatar = upload_image(avatar, 'avatars')
+                        delete_image(avatar_url)
+                        avatar_url = new_avatar
+                    if cover:
+                        new_cover = upload_image(cover, 'covers')
+                        delete_image(cover_url)
+                        cover_url = new_cover
+                except ValueError as exc:
+                    p_form.add_error(None, str(exc))
+                else:
+                    updated = update_profile(
+                        user.id,
+                        p_form.cleaned_data,
+                        avatar_url=avatar_url,
+                        cover_url=cover_url,
+                    )
+                    from community.repositories import refresh_author
+                    refresh_author(updated.id, updated.username, updated.profile.avatar_url)
+                    messages.success(request, 'Your profile has been updated!')
+                    return redirect('profile')
     else:
-        u_form = UserUpdateForm(instance=request.user)
-        p_form = ProfileUpdateForm(instance=profile)
+        u_form = UserUpdateForm(user=user)
+        p_form = ProfileUpdateForm(profile=user.profile)
 
+    context = {'u_form': u_form, 'p_form': p_form}
     if request.path == reverse('profile'):
-        template = 'users/profile.html'
-        posts = BlogPost.objects.filter(author=request.user)
-        meals = MealPlanner.objects.filter(user=request.user).order_by('-date')
-        workouts = WorkoutPlanner.objects.filter(user=request.user).order_by('-date')
-        video_history = VideoHistory.objects.filter(user=request.user)
-        
-        context = {
-            'posts': posts[:5],
-            'meals': meals[:7],
-            'workouts': workouts[:7],
-            'video_history': video_history[:9],
-            'post_count': posts.count(),
-            'meal_count': meals.count(),
-            'workout_count': workouts.count(),
-            'video_count': video_history.count(),
-        }
-    else:
-        template = 'users/edit_profile.html'
-        context = {}
+        from community.repositories import count_posts_by_author, list_posts_by_author
+        from tools.repositories import (
+            count_meals_by_user,
+            count_workouts_by_user,
+            list_meals_by_user,
+            list_workouts_by_user,
+        )
+        from videos.repositories import count_videos, list_video_history
 
-    context.update({
-        'u_form': u_form,
-        'p_form': p_form,
-    })
+        context.update({
+            'posts': list_posts_by_author(user.id, limit=5),
+            'meals': list_meals_by_user(user.id, limit=7),
+            'workouts': list_workouts_by_user(user.id, limit=7),
+            'video_history': list_video_history(user.id, limit=9),
+            'post_count': count_posts_by_author(user.id),
+            'meal_count': count_meals_by_user(user.id),
+            'workout_count': count_workouts_by_user(user.id),
+            'video_count': count_videos(user.id),
+        })
+        return render(request, 'users/profile.html', context)
 
-    return render(request, template, context)
+    return render(request, 'users/edit_profile.html', context)
 
-
-
-
-
-def send_otp_email(user, otp):
-    """Helper function to send OTP email with HTML template"""
-    context = {
-        'user': user,
-        'otp': otp
-    }
-
-    # Render HTML content
-    html_content = render_to_string('users/otp_email.html', context)
-    # Create plain text content (fallback)
-    text_content = f'Your OTP for FitLifeGuide login is: {otp}\nThis code will expire in 5 minutes.'
-
-    # Create email
-    subject = 'Your FitLifeGuide Login Code'
-    from_email = settings.DEFAULT_FROM_EMAIL
-    to_email = user.email
-
-    msg = EmailMultiAlternatives(subject, text_content, from_email, [to_email])
-    msg.attach_alternative(html_content, "text/html")
-    msg.send()
 
 class CustomLoginView(LoginView):
     authentication_form = CustomLoginForm
@@ -134,62 +165,45 @@ class CustomLoginView(LoginView):
     def form_valid(self, form):
         user = form.get_user()
         self.request.session['pre_2fa_user_id'] = user.id
-
-        # Generate and store OTP
-        otp = str(secrets.randbelow(900000) + 100000)
-        EmailOTP.objects.update_or_create(
-            user=user,
-            defaults={'code': otp, 'created_at': timezone.now()}
-        )
-
-        # Send OTP email using the new template
+        otp = create_otp(user.id)
         try:
             send_otp_email(user, otp)
         except Exception:
-            logger.exception("OTP email failed for %s", user.email)
-            messages.error(self.request, "Could not send the login code. Please try again later.")
+            logger.exception('OTP email failed for %s', user.email)
+            messages.error(self.request, 'Could not send the login code. Please try again later.')
             return redirect('login')
-
         return redirect('verify_otp')
 
-
-
-
-
-def logout(request):
-    return render(request,'mainpage/about.html')
-    
 
 def verify_otp(request):
     user_id = request.session.get('pre_2fa_user_id')
     if not user_id:
         return redirect('login')
-    
-    user = User.objects.get(id=user_id)
-    
+
+    user = get_user(user_id)
+    if not user:
+        request.session.pop('pre_2fa_user_id', None)
+        return redirect('login')
+
     if request.method == 'POST':
         form = OTPForm(request.POST)
         if form.is_valid():
-            input_otp = form.cleaned_data['otp']
-            try:
-                email_otp = EmailOTP.objects.get(user=user)
-                
-                if email_otp.is_expired():
-                    form.add_error('otp', 'OTP has expired. Please request a new one.')
-                elif input_otp == email_otp.code:
-                    login(request, user)
-                    # Clean up session and OTP
-                    del request.session['pre_2fa_user_id']
-                    email_otp.delete()
-                    return redirect('home')
-                else:
-                    form.add_error('otp', 'Invalid OTP. Please try again.')
-            except EmailOTP.DoesNotExist:
-                form.add_error('otp', 'No valid OTP found. Please request a new one.')
+            record = get_otp(user.id)
+            if not record:
+                form.add_error('otp', 'OTP has expired. Please request a new one.')
+            elif form.cleaned_data['otp'] != record.get('code'):
+                form.add_error('otp', 'Invalid OTP. Please try again.')
+            else:
+                user.backend = settings.AUTHENTICATION_BACKENDS[0]
+                login(request, user)
+                request.session.pop('pre_2fa_user_id', None)
+                delete_otp(user.id)
+                return redirect('home')
     else:
         form = OTPForm()
 
     return render(request, 'users/verify_otp.html', {'form': form})
+
 
 def resend_otp(request):
     if request.method != 'POST':
@@ -199,35 +213,29 @@ def resend_otp(request):
     if not user_id:
         return HttpResponseBadRequest('No pending OTP verification')
 
-    user = User.objects.get(id=user_id)
+    user = get_user(user_id)
+    if not user:
+        return HttpResponseBadRequest('No pending OTP verification')
 
-    # Generate new OTP
-    otp = str(secrets.randbelow(900000) + 100000)
-    EmailOTP.objects.update_or_create(
-        user=user,
-        defaults={'code': otp, 'created_at': timezone.now()}
-    )
-
-    # Send OTP email using the new template
+    otp = create_otp(user.id)
     try:
         send_otp_email(user, otp)
     except Exception:
-        logger.exception("Resend OTP failed for %s", user.email)
+        logger.exception('Resend OTP failed for %s', user.email)
         return JsonResponse({'message': 'Could not send a new code'}, status=502)
 
     return JsonResponse({'message': 'New OTP sent successfully'})
+
 
 @login_required
 def update_status(request):
     if request.method == 'POST':
         new_status = request.POST.get('status')
-        profile = Profile.get_or_create_profile(request.user)
-        if new_status in dict(Profile.STATUS_CHOICES):
-            profile.status = new_status
-            profile.save()
+        if new_status in dict(PROFILE_STATUS):
+            set_status(request.user.id, new_status)
             return JsonResponse({
                 'success': True,
                 'status': new_status,
-                'status_text': dict(Profile.STATUS_CHOICES)[new_status]
+                'status_text': label_for(PROFILE_STATUS, new_status),
             })
     return JsonResponse({'success': False}, status=400)

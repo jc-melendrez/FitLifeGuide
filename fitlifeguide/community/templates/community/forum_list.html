@@ -14,7 +14,7 @@
 <div class="fl-grid-3 fl-forum-grid">
     {% for forum in forums %}
     <section class="fl-card fl-forum-card">
-        <div class="fl-label fl-lime">{{ forum.threads.count }} threads</div>
+        <div class="fl-label fl-lime">{{ forum.thread_count }} threads</div>
         <h2 class="fl-h">{{ forum.name }}</h2>
         <p class="fl-muted">{{ forum.description|default:"No description yet." }}</p>
         <div class="fl-forum-actions">

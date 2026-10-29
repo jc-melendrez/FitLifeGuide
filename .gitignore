@@ -6,3 +6,5 @@ media/
 env/
 .venv/
 staticfiles/
+firebase-debug.log
+firestore-debug.log

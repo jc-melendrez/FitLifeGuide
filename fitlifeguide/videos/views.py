@@ -49,7 +49,7 @@
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from .models import VideoHistory
+from .repositories import add_video_history
 import requests
 import isodate
 import datetime
@@ -184,14 +184,13 @@ def track_video_click(request, video_id):
         channel_title = request.POST.get('channel_title')
         duration = request.POST.get('duration')
 
-        # Create video history entry
-        VideoHistory.objects.create(
-            user=request.user,
-            video_id=video_id,
-            title=title,
-            thumbnail_url=thumbnail_url,
-            channel_title=channel_title,
-            duration=duration
+        add_video_history(
+            request.user,
+            video_id,
+            title,
+            thumbnail_url,
+            channel_title,
+            duration,
         )
 
         # Redirect to YouTube video
