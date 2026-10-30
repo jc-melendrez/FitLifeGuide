@@ -95,6 +95,8 @@ class Profile:
     cover_url: str = DEFAULT_COVER
     status: str = 'rest'
     status_updated_at: datetime | None = None
+    goal: str = ''
+    days_per_week: int | None = None
 
     @property
     def avatar(self):

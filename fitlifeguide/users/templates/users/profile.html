@@ -44,6 +44,23 @@
     </div>
 </section>
 
+<section class="fl-grid-2 fl-profile-streaks">
+    <div class="fl-card">
+        <div class="fl-label">Last 28 days</div>
+        <div class="fl-heat" aria-label="Training heatmap">
+            {% for cell in heat %}
+            <span class="fl-heat-cell{% if cell.trained %} is-on{% endif %}" title="{{ cell.date|date:'M j' }}"></span>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="fl-card fl-card-highlight">
+        <div class="fl-label">Current streak</div>
+        <div class="fl-h fl-lime">{{ streak }} days</div>
+        <div class="fl-label">Best streak</div>
+        <div class="fl-h">{{ best_streak }} days</div>
+    </div>
+</section>
+
 <section class="fl-grid-2 fl-profile-sections">
     <div class="fl-card">
         <div class="fl-label fl-lime">Recent workouts</div>

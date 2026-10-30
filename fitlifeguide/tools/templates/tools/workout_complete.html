@@ -1,0 +1,40 @@
+{% extends 'mainpage/base.html' %}
+{% block title %}Workout complete - FitLifeGuide{% endblock %}
+
+{% block content %}
+<div class="fl-complete">
+    <div class="fl-card fl-card-highlight fl-complete-card">
+        <div class="fl-complete-check">&#10003;</div>
+        <h1 class="fl-h fl-complete-title">Done<span class="fl-lime">.</span></h1>
+        <p class="fl-muted">
+            {{ workout.title }}{% if workout.duration_minutes %} &middot; {{ workout.duration_minutes }} min{% endif %}
+        </p>
+
+        <div class="fl-grid-3 fl-complete-stats">
+            <div class="fl-card fl-stat">
+                <div class="fl-h">{{ workout.duration_minutes|default:"--" }}</div>
+                <div class="fl-label">Min</div>
+            </div>
+            <div class="fl-card fl-stat">
+                <div class="fl-h">{{ week_workouts }}/{{ week_goal }}</div>
+                <div class="fl-label">This week</div>
+            </div>
+            <div class="fl-card fl-stat">
+                <div class="fl-h fl-lime">{{ streak }}</div>
+                <div class="fl-label">Day streak</div>
+            </div>
+        </div>
+
+        <div class="fl-complete-actions">
+            <a class="fl-btn" href="{% url 'create_post' %}?workout={{ workout.id }}">Share to community</a>
+            {% if next_workout %}
+            <a class="fl-btn fl-btn-secondary" href="{% url 'tools:workout_hub' %}">Next: {{ next_workout.date|date:"l" }} &middot; {{ next_workout.title }}</a>
+            {% else %}
+            <a class="fl-btn fl-btn-secondary" href="{% url 'tools:plan' %}">Plan next week</a>
+            {% endif %}
+        </div>
+
+        <a class="fl-muted" href="{% url 'home' %}">Back to Today</a>
+    </div>
+</div>
+{% endblock %}

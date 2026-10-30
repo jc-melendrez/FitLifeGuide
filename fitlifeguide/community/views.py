@@ -90,7 +90,7 @@ def create_post_view(request):
                     messages.success(request, 'Post created successfully!')
                     return redirect('posts')
     else:
-        form = BlogPostForm(user=request.user)
+        form = BlogPostForm(user=request.user, initial={'workout': request.GET.get('workout', '')})
     return render(request, 'community/create_post.html', {'form': form})
 
 

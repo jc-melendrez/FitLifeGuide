@@ -7,6 +7,14 @@ from fitlifeguide.domain import PROFILE_STATUS
 
 from .repositories import create_user, get_user_by_email, get_user_by_username
 
+GOAL_CHOICES = (
+    ('build_muscle', 'Build muscle'),
+    ('lose_fat', 'Lose fat'),
+    ('stay_active', 'Stay active'),
+    ('run_further', 'Run further'),
+)
+DAY_CHOICES = tuple((str(n), str(n)) for n in (2, 3, 4, 5, 6))
+
 
 class UserRegisterForm(forms.Form):
     email = forms.EmailField(widget=forms.EmailInput(attrs={
@@ -26,6 +34,8 @@ class UserRegisterForm(forms.Form):
         'class': 'form-control',
         'placeholder': 'Confirm Password',
     }))
+    goal = forms.ChoiceField(choices=GOAL_CHOICES, required=False, initial='build_muscle', widget=forms.RadioSelect)
+    days_per_week = forms.ChoiceField(choices=DAY_CHOICES, required=False, initial='4', widget=forms.RadioSelect)
 
     def clean_username(self):
         username = self.cleaned_data.get('username', '').strip()
@@ -53,10 +63,13 @@ class UserRegisterForm(forms.Form):
         return cleaned
 
     def save(self):
+        days = self.cleaned_data.get('days_per_week')
         return create_user(
             self.cleaned_data['username'],
             self.cleaned_data['email'],
             self.cleaned_data['password1'],
+            goal=self.cleaned_data.get('goal', ''),
+            days_per_week=int(days) if days else None,
         )
 
 

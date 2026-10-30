@@ -23,6 +23,48 @@ def _greeting():
     return 'Good evening'
 
 
+def active_dates(workout_list, meal_list):
+    dates = {workout.date for workout in workout_list if workout.status == 'completed'}
+    dates.update(meal.date for meal in meal_list if meal.status == 'eaten')
+    return dates
+
+
+def streak_from_dates(dates, day):
+    streak = 0
+    cursor = day
+    while cursor in dates:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
+
+
+def best_streak_from_dates(dates):
+    best = run = 0
+    previous = None
+    for current in sorted(d for d in dates if d):
+        run = run + 1 if previous and current == previous + timedelta(days=1) else 1
+        best = max(best, run)
+        previous = current
+    return best
+
+
+def get_activity_stats(user, day=None, days=28):
+    day = day or timezone.localdate()
+    start = day - timedelta(days=days - 1)
+    workouts = list_workouts_between(user.id, start, day)
+    meals = list_meals_between(user.id, start, day)
+    dates = active_dates(workouts, meals)
+    heat = [
+        {'date': start + timedelta(days=offset), 'trained': (start + timedelta(days=offset)) in dates}
+        for offset in range(days)
+    ]
+    return {
+        'streak': streak_from_dates(dates, day),
+        'best_streak': best_streak_from_dates(dates),
+        'heat': heat,
+    }
+
+
 def get_today_context(user, day=None):
     day = day or timezone.localdate()
     week_start = _monday(day)
@@ -60,16 +102,7 @@ def get_today_context(user, day=None):
     completed_workouts = [
         workout for workout in workout_list if workout.status == 'completed'
     ]
-    completed_dates = {workout.date for workout in completed_workouts}
-    completed_dates.update(
-        meal.date for meal in meal_list if meal.status == 'eaten'
-    )
-
-    streak = 0
-    cursor = day
-    while cursor in completed_dates:
-        streak += 1
-        cursor -= timedelta(days=1)
+    streak = streak_from_dates(active_dates(workout_list, meal_list), day)
 
     circumference = 2 * 3.141592653589793 * 42
     ring_ratio = min(1, len(completed_workouts) / WEEKLY_WORKOUT_GOAL)

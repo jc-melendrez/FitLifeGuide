@@ -26,6 +26,8 @@ def _profile_from_doc(uid, data):
         cover_url=data.get('cover_url', ''),
         status=data.get('status', 'rest'),
         status_updated_at=parse_datetime(data.get('status_updated_at')),
+        goal=data.get('goal', ''),
+        days_per_week=data.get('days_per_week'),
     )
 
 
@@ -73,7 +75,7 @@ def get_user_by_email(email):
     return None
 
 
-def create_user(username, email, password):
+def create_user(username, email, password, goal='', days_per_week=None):
     username = username.strip()
     email = email.strip()
     username_lower = username.lower()
@@ -115,6 +117,8 @@ def create_user(username, email, password):
             'cover_url': '',
             'status': 'rest',
             'status_updated_at': now,
+            'goal': goal,
+            'days_per_week': days_per_week,
         })
         transaction.set(username_ref, {'uid': uid})
         transaction.set(email_ref, {'uid': uid})

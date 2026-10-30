@@ -130,6 +130,7 @@ def profile(request):
     context = {'u_form': u_form, 'p_form': p_form}
     if request.path == reverse('profile'):
         from community.repositories import count_posts_by_author, list_posts_by_author
+        from tools.activity import get_activity_stats
         from tools.repositories import (
             count_meals_by_user,
             count_workouts_by_user,
@@ -147,6 +148,7 @@ def profile(request):
             'meal_count': count_meals_by_user(user.id),
             'workout_count': count_workouts_by_user(user.id),
             'video_count': count_videos(user.id),
+            **get_activity_stats(user),
         })
         return render(request, 'users/profile.html', context)
 

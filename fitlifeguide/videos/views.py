@@ -49,7 +49,7 @@
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from .repositories import add_video_history
+from .repositories import add_video_history, list_video_history
 import requests
 import isodate
 import datetime
@@ -62,13 +62,32 @@ def format_duration(iso_duration):
     except Exception:
         return "N/A"
 
+FOCUS_TERMS = {
+    'workouts': 'workout strength training',
+    'nutrition': 'nutrition healthy eating',
+    'recovery': 'recovery mobility stretching',
+}
+
+
+def _render_page(request, videos, error=None):
+    history = list_video_history(request.user.id, limit=3) if request.user.is_authenticated else []
+    return render(request, 'videos/videos.html', {
+        'videos': videos,
+        'error': error,
+        'continue_watching': history,
+        'focus': request.GET.get('focus', 'all'),
+    })
+
 def videos_views(request, search_query=None, max_results=15):
     search_url = 'https://www.googleapis.com/youtube/v3/search'
     video_url = 'https://www.googleapis.com/youtube/v3/videos'
+    focus = request.GET.get('focus', 'all')
 
     # If there's a search query, combine it with fitness terms
     if search_query:
         search_terms = f"{search_query} workout"
+    elif focus in FOCUS_TERMS:
+        search_terms = FOCUS_TERMS[focus]
     else:
         search_terms = "workout fitness exercise tutorial"
 
@@ -90,14 +109,14 @@ def videos_views(request, search_query=None, max_results=15):
             error_msg = f"YouTube API Error: {search_response.status_code} - {search_response.text}"
             if search_query:
                 return []
-            return render(request, 'videos/videos.html', {'videos': [], 'error': error_msg})
+            return _render_page(request, [], error_msg)
 
         search_results = search_response.json().get('items', [])
         
         if not search_results:
             if search_query:
                 return []
-            return render(request, 'videos/videos.html', {'videos': [], 'error': 'No videos found'})
+            return _render_page(request, [], 'No videos found')
 
         video_ids = [result['id']['videoId'] for result in search_results]
 
@@ -114,7 +133,7 @@ def videos_views(request, search_query=None, max_results=15):
             error_msg = f"YouTube Video API Error: {video_response.status_code} - {video_response.text}"
             if search_query:
                 return []
-            return render(request, 'videos/videos.html', {'videos': [], 'error': error_msg})
+            return _render_page(request, [], error_msg)
 
         video_results = video_response.json().get('items', [])
 
@@ -167,13 +186,13 @@ def videos_views(request, search_query=None, max_results=15):
 
         if search_query:
             return videos[:max_results]  # Ensure we don't return more than requested
-        return render(request, 'videos/videos.html', {'videos': videos})
+        return _render_page(request, videos)
 
     except Exception as e:
         error_msg = f"Error: {str(e)}"
         if search_query:
             return []
-        return render(request, 'videos/videos.html', {'videos': [], 'error': error_msg})
+        return _render_page(request, [], error_msg)
 
 @login_required
 def track_video_click(request, video_id):

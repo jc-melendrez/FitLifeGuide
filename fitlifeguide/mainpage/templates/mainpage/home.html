@@ -22,7 +22,14 @@
                     {% if today_workout.duration_minutes %}{{ today_workout.duration_minutes }}{% else %}&mdash;{% endif %} min &middot; {{ today_workout.goal|default:"No goal set" }}
                 </p>
                 <div class="fl-pill-row">
-                    <a class="fl-btn" href="{% url 'tools:workout_hub' %}">Open workout</a>
+                    <a class="fl-btn fl-btn-secondary" href="{% url 'tools:workout_hub' %}">Open workout</a>
+                    {% if today_workout.status != 'completed' %}
+                        <form method="post" action="{% url 'tools:update_workout_status' today_workout.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="completed">
+                            <button class="fl-btn" type="submit">Mark complete</button>
+                        </form>
+                    {% endif %}
                     {% if today_workout.status == 'planned' %}
                         <form method="post" action="{% url 'tools:skip_today' %}">
                             {% csrf_token %}

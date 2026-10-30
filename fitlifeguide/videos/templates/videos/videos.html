@@ -10,8 +10,46 @@
     <a class="fl-pill" href="{% url 'profile' %}">Watch history</a>
 </div>
 
+<div class="fl-pill-row fl-community-tabs" aria-label="Video filters">
+    <a class="fl-pill{% if focus == 'all' %} fl-pill-on{% endif %}" href="?focus=all">All</a>
+    <a class="fl-pill{% if focus == 'workouts' %} fl-pill-on{% endif %}" href="?focus=workouts">Workouts</a>
+    <a class="fl-pill{% if focus == 'nutrition' %} fl-pill-on{% endif %}" href="?focus=nutrition">Nutrition</a>
+    <a class="fl-pill{% if focus == 'recovery' %} fl-pill-on{% endif %}" href="?focus=recovery">Recovery</a>
+</div>
+
 {% if error %}
 <div class="fl-alert fl-alert-error" role="alert">Videos are unavailable right now. Please try again later.</div>
+{% endif %}
+
+{% if continue_watching %}
+<section class="fl-video-continue">
+    <div class="fl-label">Continue watching</div>
+    <div class="fl-video-grid">
+        {% for video in continue_watching %}
+        <a class="fl-video-card" href="https://www.youtube.com/watch?v={{ video.video_id }}" target="_blank" rel="noopener">
+            {% if video.thumbnail_url %}
+            <div class="fl-video-thumb"><img src="{{ video.thumbnail_url }}" alt="{{ video.title }}"></div>
+            {% endif %}
+            <div class="fl-video-body">
+                <strong>{{ video.title }}</strong>
+                <div class="fl-muted">{{ video.channel_title }}</div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if videos %}
+<section class="fl-card fl-card-highlight fl-video-featured">
+    <div class="fl-video-featured-thumb"><img src="{{ videos.0.thumbnail }}" alt="{{ videos.0.title }}"></div>
+    <div>
+        <div class="fl-label fl-lime">Pick for your goal</div>
+        <h2 class="fl-h">{{ videos.0.title }}</h2>
+        <p class="fl-muted">{{ videos.0.channel_title }} &middot; {{ videos.0.duration }}</p>
+        <a class="fl-pill fl-pill-on" href="https://www.youtube.com/watch?v={{ videos.0.id }}" target="_blank" rel="noopener">Play</a>
+    </div>
+</section>
 {% endif %}
 
 {% if videos %}

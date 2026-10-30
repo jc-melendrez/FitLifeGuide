@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 
 from fitlifeguide.domain import MEAL_STATUS, MEAL_TYPES, WEEKDAYS, label_for
 
+from .activity import WEEKLY_WORKOUT_GOAL, get_activity_stats
 from .forms import MealPlannerForm, WorkoutPlanForm
 from .plan import PLAN_VIEWS, copy_previous_week, get_plan_context, parse_week
 from .repositories import (
@@ -318,7 +319,31 @@ def update_workout_status(request, workout_id):
         if status in ('planned', 'completed', 'missed'):
             set_workout_status(workout.id, status)
             messages.success(request, f'Workout marked as {status}!')
+            if status == 'completed':
+                return redirect('tools:workout_complete', workout_id=workout.id)
     return redirect('tools:workout_hub')
+
+
+@login_required
+def workout_complete(request, workout_id):
+    workout = get_workout(workout_id, request.user.id)
+    if not workout:
+        raise Http404('Workout not found')
+    day = workout.date or timezone.localdate()
+    week_start = workout.week_start or (day - timedelta(days=day.weekday()))
+    week_end = week_start + timedelta(days=6)
+    workouts = list_workouts_between(request.user.id, week_start, week_end)
+    next_workout = next(
+        (item for item in workouts if item.date > day and item.status == 'planned'),
+        None,
+    )
+    return render(request, 'tools/workout_complete.html', {
+        'workout': workout,
+        'week_workouts': sum(1 for item in workouts if item.status == 'completed'),
+        'week_goal': WEEKLY_WORKOUT_GOAL,
+        'next_workout': next_workout,
+        **get_activity_stats(request.user, day),
+    })
 
 
 @login_required
