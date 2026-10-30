@@ -1,51 +1,64 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
-{% load crispy_forms_tags %}
+{% block title %}Plan a workout - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card bg-dark border-secondary text-light shadow-sm">
-                <div class="card-header bg-transparent border-secondary">
-                    <h2 class="card-title mb-0 text-info">
-                        <i class="fas fa-plus-circle me-2"></i>Add New Workout
-                    </h2>
-                </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-                        {{ form|crispy }}
-                        <div class="mt-4">
-                            <button type="submit" class="btn btn-cyan">
-                                <i class="fas fa-save"></i> Save Workout
-                            </button>
-                            <a href="{% if next %}{{ next }}{% else %}{% url 'tools:workout_hub' %}{% endif %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times"></i> Cancel
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">Workout</div>
+        <h1 class="fl-h fl-page-title">Plan a <span class="fl-lime">workout</span></h1>
     </div>
+    <a class="fl-pill" href="{% if next %}{{ next }}{% else %}{% url 'tools:workout_hub' %}{% endif %}">Cancel</a>
 </div>
 
-<style>
-.form-control, .form-select {
-    background-color: #1a1a1a;
-    border-color: #2d2d2d;
-    color: #fff;
-}
-.form-control:focus, .form-select:focus {
-    background-color: #1a1a1a;
-    border-color: #0d6efd;
-    color: #fff;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-.form-control::placeholder {
-    color: #6c757d;
-}
-</style>
-{% endblock %} 
+<form method="post" class="fl-card fl-form" novalidate>
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+    {% if form.non_field_errors %}
+    <div class="fl-alert fl-alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="fl-grid-2">
+        <div class="fl-field">
+            <label class="fl-label" for="{{ form.title.id_for_label }}">Title</label>
+            {{ form.title }}
+            {{ form.title.errors }}
+        </div>
+        <div class="fl-field">
+            <label class="fl-label" for="{{ form.date.id_for_label }}">Date</label>
+            {{ form.date }}
+            {{ form.date.errors }}
+        </div>
+    </div>
+
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.exercises.id_for_label }}">Exercises</label>
+        {{ form.exercises }}
+        {{ form.exercises.errors }}
+    </div>
+
+    <div class="fl-grid-2">
+        <div class="fl-field">
+            <label class="fl-label" for="{{ form.duration_minutes.id_for_label }}">Duration (min)</label>
+            {{ form.duration_minutes }}
+            {{ form.duration_minutes.errors }}
+        </div>
+        <div class="fl-field">
+            <label class="fl-label" for="{{ form.goal.id_for_label }}">Goal</label>
+            {{ form.goal }}
+            {{ form.goal.errors }}
+        </div>
+    </div>
+
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.notes.id_for_label }}">Notes</label>
+        {{ form.notes }}
+        {{ form.notes.errors }}
+    </div>
+
+    <div class="fl-form-actions">
+        <button type="submit" class="fl-btn">Save workout</button>
+        <a class="fl-btn fl-btn-secondary" href="{% if next %}{{ next }}{% else %}{% url 'tools:workout_hub' %}{% endif %}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

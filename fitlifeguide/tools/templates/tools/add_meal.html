@@ -1,44 +1,45 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
-{% load widget_tweaks %}
+{% block title %}{% if meal %}Edit{% else %}Add{% endif %} meal - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container mt-4 mb-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10 mx-auto">
-            <div class="card bg-dark text-light border-secondary">
-                <div class="card-header bg-dark border-secondary">
-                    <h3 class="card-title mb-0 grad">
-                        {% if form.instance.pk %}Edit{% else %}Add{% endif %} {{ meal_type }} for {{ day_name }}
-                        <div class="text-light-emphasis small mt-1">{{ date|date:"F d, Y" }}</div>
-                    </h3>
-                </div>
-                <div class="card-body px-4">
-                    <form method="post">
-                        {% csrf_token %}
-                        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-                        {% for field in form %}
-                            <div class="form-group mb-3">
-                                <label for="{{ field.id_for_label }}" class="text-aqua">{{ field.label }}</label>
-                                {{ field|add_class:"form-control" }}
-                                {% if field.help_text %}
-                                    <small class="form-text text-light-emphasis">{{ field.help_text }}</small>
-                                {% endif %}
-                                {% if field.errors %}
-                                    <div class="alert alert-danger mt-1">
-                                        {{ field.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                        <div class="form-group mt-4">
-                            <button type="submit" class="btn btn-cyan">Save Meal</button>
-                            <a href="{% if next %}{{ next }}{% else %}{% url 'tools:meal_planner' %}{% endif %}" class="btn btn-outline-secondary ms-2">Cancel</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">{{ day_name }} &middot; {{ date|date:"M d, Y" }}</div>
+        <h1 class="fl-h fl-page-title">{% if meal %}Edit{% else %}Add{% endif %} <span class="fl-lime">{{ meal_type|lower }}</span></h1>
     </div>
+    <a class="fl-pill" href="{% if next %}{{ next }}{% else %}{% url 'tools:meal_planner' %}{% endif %}">Cancel</a>
 </div>
-{% endblock %} 
+
+<form method="post" class="fl-card fl-form" novalidate>
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+    {% if form.non_field_errors %}
+    <div class="fl-alert fl-alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.food_items.id_for_label }}">Food items</label>
+        {{ form.food_items }}
+        {{ form.food_items.errors }}
+    </div>
+
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.calories.id_for_label }}">Calories</label>
+        {{ form.calories }}
+        {{ form.calories.errors }}
+        <p class="fl-muted fl-field-hint">Optional.</p>
+    </div>
+
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.notes.id_for_label }}">Notes</label>
+        {{ form.notes }}
+        {{ form.notes.errors }}
+    </div>
+
+    <div class="fl-form-actions">
+        <button type="submit" class="fl-btn">{% if meal %}Save changes{% else %}Save meal{% endif %}</button>
+        <a class="fl-btn fl-btn-secondary" href="{% if next %}{{ next }}{% else %}{% url 'tools:meal_planner' %}{% endif %}">Cancel</a>
+    </div>
+</form>
+{% endblock %}
