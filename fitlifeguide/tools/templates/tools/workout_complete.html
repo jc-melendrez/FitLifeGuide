@@ -28,7 +28,7 @@
         <div class="fl-complete-actions">
             <a class="fl-btn" href="{% url 'create_post' %}?workout={{ workout.id }}">Share to community</a>
             {% if next_workout %}
-            <a class="fl-btn fl-btn-secondary" href="{% url 'tools:workout_hub' %}">Next: {{ next_workout.date|date:"l" }} &middot; {{ next_workout.title }}</a>
+            <a class="fl-btn fl-btn-secondary" href="{% url 'tools:workout_detail' next_workout.id %}">Next: {{ next_workout.date|date:"l" }} &middot; {{ next_workout.title }}</a>
             {% else %}
             <a class="fl-btn fl-btn-secondary" href="{% url 'tools:plan' %}">Plan next week</a>
             {% endif %}

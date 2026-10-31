@@ -3,9 +3,20 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
+from django.urls import reverse
 
 from tools.plan import get_plan_context, parse_week
 from tools.repositories import MEAL_ORDER
+
+
+class WorkoutDetailUrlTests(SimpleTestCase):
+    def test_workout_detail_url_resolves(self):
+        self.assertEqual(reverse('tools:workout_detail', args=['abc']), '/workout/abc/')
+
+    def test_workout_detail_requires_login(self):
+        response = self.client.get(reverse('tools:workout_detail', args=['abc']))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response.url)
 
 
 class PlanHelperTests(SimpleTestCase):

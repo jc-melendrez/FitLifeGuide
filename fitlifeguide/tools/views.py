@@ -323,6 +323,14 @@ def update_workout_status(request, workout_id):
 
 
 @login_required
+def workout_detail(request, workout_id):
+    workout = get_workout(workout_id, request.user.id)
+    if not workout:
+        raise Http404('Workout not found')
+    return render(request, 'tools/workout_detail.html', {'workout': workout})
+
+
+@login_required
 def workout_complete(request, workout_id):
     workout = get_workout(workout_id, request.user.id)
     if not workout:

@@ -65,11 +65,13 @@
     <div class="fl-card">
         <div class="fl-label fl-lime">Recent workouts</div>
         {% for workout in workouts %}
-        <div class="fl-activity-row">
+        <a class="fl-activity-row" href="{% url 'tools:workout_detail' workout.id %}">
             <div>
                 <strong>{{ workout.title }}</strong>
-                <div class="fl-muted">{{ workout.date|date:"M d" }} · {{ workout.get_status_display }}</div>
+                <div class="fl-muted">{{ workout.date|date:"M d" }} A� {{ workout.get_status_display }}</div>
             </div>
+            <span class="fl-pill">{{ workout.duration_minutes|default:"-" }} min</span>
+        </a>
             <span class="fl-pill">{{ workout.duration_minutes|default:"-" }} min</span>
         </div>
         {% empty %}

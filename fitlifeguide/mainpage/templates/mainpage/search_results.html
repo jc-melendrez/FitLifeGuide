@@ -30,7 +30,7 @@
     <section class="fl-card">
         <div class="fl-label fl-lime">Workouts &middot; {{ workouts|length }}</div>
         {% for workout in workouts %}
-        <a class="fl-search-row" href="{% url 'tools:workout_hub' %}?date={{ workout.date|date:'Y-m-d' }}">
+        <a class="fl-search-row" href="{% url 'tools:workout_detail' workout.id %}">
             <div class="fl-icon"></div>
             <div class="fl-search-copy">
                 <strong>{{ workout.title }}</strong>

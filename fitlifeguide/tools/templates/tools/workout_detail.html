@@ -1,0 +1,54 @@
+{% extends 'mainpage/base.html' %}
+{% block title %}{{ workout.title }} - FitLifeGuide{% endblock %}
+
+{% block content %}
+<div class="fl-page-head">
+    <div>
+        <div class="fl-label fl-lime">{{ workout.date|date:"l, M j" }}</div>
+        <h1 class="fl-h fl-page-title">{{ workout.title }}</h1>
+        <p class="fl-muted">
+            {% if workout.duration_minutes %}{{ workout.duration_minutes }} min{% else %}&mdash; min{% endif %}
+            &middot; {{ workout.goal|default:"No goal set" }}
+            &middot; <span class="fl-pill{% if workout.status == 'completed' %} fl-pill-on{% endif %}">{{ workout.get_status_display }}</span>
+        </p>
+    </div>
+    <a class="fl-pill" href="{% url 'tools:workout_hub' %}">Back to workouts</a>
+</div>
+
+<section class="fl-card">
+    <div class="fl-label">Exercises</div>
+    {% if workout.exercises %}
+        <div class="fl-workout-exercises">{{ workout.exercises|linebreaks }}</div>
+    {% else %}
+        <p class="fl-muted">No exercises added yet.</p>
+    {% endif %}
+</section>
+
+{% if workout.notes %}
+<section class="fl-card">
+    <div class="fl-label">Notes</div>
+    <div class="fl-muted">{{ workout.notes|linebreaks }}</div>
+</section>
+{% endif %}
+
+<div class="fl-pill-row">
+    {% if workout.status == 'completed' %}
+        <form method="post" action="{% url 'tools:update_workout_status' workout.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="planned">
+            <button class="fl-btn fl-btn-secondary" type="submit">Mark as planned</button>
+        </form>
+    {% else %}
+        <form method="post" action="{% url 'tools:update_workout_status' workout.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="completed">
+            <button class="fl-btn" type="submit">Finish workout</button>
+        </form>
+    {% endif %}
+    <a class="fl-btn fl-btn-secondary" href="{% url 'tools:edit_workout' workout.id %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+    <form method="post" action="{% url 'tools:delete_workout' workout.id %}" class="fl-inline-form">
+        {% csrf_token %}
+        <button type="submit" class="fl-btn fl-btn-danger" onclick="return confirm('Delete this workout?')">Delete</button>
+    </form>
+</div>
+{% endblock %}

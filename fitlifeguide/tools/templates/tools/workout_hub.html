@@ -46,6 +46,7 @@
                     </form>
 
                     <div class="fl-pill-row">
+                        <a class="fl-btn fl-btn-secondary" href="{% url 'tools:workout_detail' workouts.workout.id %}">View</a>
                         <a class="fl-btn fl-btn-secondary" href="{% url 'tools:edit_workout' workouts.workout.id %}?next={{ request.get_full_path|urlencode }}">Edit</a>
                         <form method="post" action="{% url 'tools:delete_workout' workouts.workout.id %}" class="fl-inline-form">
                             {% csrf_token %}

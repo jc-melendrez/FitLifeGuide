@@ -82,7 +82,7 @@
                                 <div class="fl-label">Workout</div>
                                 {% if day.workout %}
                                     <div class="fl-plan-entry">
-                                        <a class="fl-plan-entry-title" href="{% url 'tools:edit_workout' day.workout.id %}?next={{ request.get_full_path|urlencode }}">{{ day.workout.title }}</a>
+                                        <a class="fl-plan-entry-title" href="{% url 'tools:workout_detail' day.workout.id %}">{{ day.workout.title }}</a>
                                         <span class="fl-muted">{% if day.workout.duration_minutes %}{{ day.workout.duration_minutes }}{% else %}--{% endif %} min</span>
                                         <span class="fl-pill">{{ day.workout.get_status_display }}</span>
                                     </div>
