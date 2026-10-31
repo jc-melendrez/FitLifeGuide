@@ -663,8 +663,8 @@ body.fl-auth .fl-main {
 
 .fl-exercise-row {
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: 14px;
+  padding: 14px;
   border: 1px solid var(--fl-line);
   border-radius: 16px;
   background: var(--fl-card-2);
@@ -738,8 +738,8 @@ body.fl-auth .fl-main {
 .fl-exercise-type select,
 .fl-exercise-control input {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 48px;
+  padding: 12px 14px;
   border: 1px solid var(--fl-line);
   border-radius: 12px;
   background: var(--fl-card);
@@ -764,7 +764,7 @@ body.fl-auth .fl-main {
 .fl-exercise-fields {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 8px;
+  gap: 14px;
 }
 
 [data-type-fields][hidden] {
@@ -773,7 +773,8 @@ body.fl-auth .fl-main {
 
 .fl-exercise-control {
   display: grid;
-  gap: 5px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .fl-exercise-control label {
@@ -1020,6 +1021,11 @@ body.fl-auth .fl-main {
 
   .fl-exercise-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .fl-exercise-control {
+    margin-bottom: 6px;
   }
 
   .fl-exercise-row:not(.is-editing) .fl-exercise-fields {
@@ -1042,10 +1048,19 @@ body.fl-auth .fl-main {
 @media (max-width: 390px) {
   .fl-exercise-row {
     padding: 10px;
+    gap: 10px;
   }
 
   .fl-exercise-row-actions {
     gap: 4px;
+  }
+
+  .fl-exercise-fields {
+    gap: 10px;
+  }
+
+  .fl-exercise-control {
+    margin-bottom: 4px;
   }
 
   .fl-exercise-handle,
