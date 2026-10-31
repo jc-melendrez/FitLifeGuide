@@ -21,6 +21,9 @@
                 <p class="fl-muted">
                     {% if today_workout.duration_minutes %}{{ today_workout.duration_minutes }}{% else %}&mdash;{% endif %} min &middot; {{ today_workout.goal|default:"No goal set" }}
                 </p>
+                <div class="fl-today-exercises">
+                    {% include 'tools/_workout_exercises.html' with exercises=today_workout.exercises legacy=today_workout.legacy_exercises_text %}
+                </div>
                 <div class="fl-pill-row">
                     <a class="fl-btn fl-btn-secondary" href="{% url 'tools:workout_detail' today_workout.id %}">Start workout</a>
                     {% if today_workout.status != 'completed' %}

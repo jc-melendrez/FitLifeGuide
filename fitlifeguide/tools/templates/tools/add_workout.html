@@ -1,4 +1,5 @@
 {% extends 'mainpage/base.html' %}
+{% load static %}
 {% block title %}Plan a workout - FitLifeGuide{% endblock %}
 
 {% block content %}
@@ -33,28 +34,33 @@
 
     {% include 'tools/_exercise_formset.html' %}
 
-    <div class="fl-grid-2">
-        <div class="fl-field">
-            <label class="fl-label" for="{{ form.duration_minutes.id_for_label }}">Duration (min)</label>
-            {{ form.duration_minutes }}
-            {{ form.duration_minutes.errors }}
-        </div>
+    <div class="fl-field">
+        <label class="fl-label" for="{{ form.duration_minutes.id_for_label }}">Duration (min)</label>
+        {{ form.duration_minutes }}
+        {{ form.duration_minutes.errors }}
+    </div>
+
+    <details class="fl-more-details" open data-more-details>
+        <summary>More details</summary>
         <div class="fl-field">
             <label class="fl-label" for="{{ form.goal.id_for_label }}">Goal</label>
             {{ form.goal }}
             {{ form.goal.errors }}
         </div>
-    </div>
-
-    <div class="fl-field">
-        <label class="fl-label" for="{{ form.notes.id_for_label }}">Notes</label>
-        {{ form.notes }}
-        {{ form.notes.errors }}
-    </div>
+        <div class="fl-field">
+            <label class="fl-label" for="{{ form.notes.id_for_label }}">Notes</label>
+            {{ form.notes }}
+            {{ form.notes.errors }}
+        </div>
+    </details>
 
     <div class="fl-form-actions">
         <button type="submit" class="fl-btn">Save workout</button>
         <a class="fl-btn fl-btn-secondary" href="{% if next %}{{ next }}{% else %}{% url 'tools:plan' %}{% endif %}">Cancel</a>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tools/exercise_builder.js' %}" defer></script>
 {% endblock %}

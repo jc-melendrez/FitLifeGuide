@@ -19,7 +19,9 @@ def search_workouts(uid, query, limit=5):
     needle = query.lower()
     matches = [
         workout for workout in list_workouts_by_user(uid)
-        if needle in workout.title.lower() or needle in exercise_text(workout.exercises).lower()
+        if needle in workout.title.lower()
+        or needle in exercise_text(workout.exercises).lower()
+        or needle in getattr(workout, 'legacy_exercises_text', '').lower()
     ]
     return matches[:limit]
 

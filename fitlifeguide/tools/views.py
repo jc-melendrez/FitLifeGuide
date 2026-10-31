@@ -1,30 +1,48 @@
+import json
 from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from fitlifeguide.domain import MEAL_STATUS, MEAL_TYPES, WEEKDAYS, label_for
+from fitlifeguide.domain import (
+    EXERCISE_NUMERIC_FIELDS,
+    MAX_CUSTOM_EXERCISES,
+    MAX_EXERCISES,
+    MEAL_STATUS,
+    MEAL_TYPES,
+    WEEKDAYS,
+    label_for,
+    serialize_exercises,
+)
 
 from .activity import WEEKLY_WORKOUT_GOAL, get_activity_stats
-from .forms import ExerciseFormSet, MealPlannerForm, WorkoutPlanForm
+from .forms import (
+    CustomExerciseForm,
+    ExerciseFormSet,
+    MealPlannerForm,
+    WorkoutPlanForm,
+)
 from .plan import PLAN_VIEWS, copy_previous_week, get_plan_context, parse_week
 from .repositories import (
     MEAL_ORDER,
     add_meal as create_meal,
     add_workout as create_workout,
     community_meals,
+    create_custom_exercise,
     delete_meal as remove_meal,
     delete_workout as remove_workout,
     get_meal,
     get_workout,
+    list_exercise_catalog,
     list_meals_between,
     list_workouts_between,
+    recent_exercises,
     set_meal_status,
     set_workout_status,
     skip_today as mark_today_missed,
@@ -35,19 +53,33 @@ from .repositories import (
 
 def _exercise_items(formset):
     items = []
-    for form in formset:
+    for index, form in enumerate(formset):
         data = getattr(form, 'cleaned_data', None)
-        if not data or data.get('DELETE'):
+        if not data or data.get('DELETE') or data.get('is_blank'):
             continue
         name = (data.get('name') or '').strip()
         if not name:
             continue
-        items.append({
+        item = {
             'name': name,
-            'sets': data.get('sets'),
-            'reps': (data.get('reps') or '').strip(),
-        })
-    return items
+            'type': data.get('type') or 'strength',
+            'order': data.get('order') if data.get('order') is not None else index,
+        }
+        for field in EXERCISE_NUMERIC_FIELDS:
+            value = data.get(field)
+            if value is None:
+                continue
+            item[field] = float(value) if field in ('weight_kg', 'distance_km') else value
+        items.append(item)
+    return serialize_exercises(items)
+
+
+def _exercise_context(user):
+    return {
+        'exercise_catalog': list_exercise_catalog(user.id),
+        'recent_exercises': recent_exercises(user.id),
+        'max_exercises': MAX_EXERCISES,
+    }
 
 
 def _next_url(request):
@@ -245,13 +277,14 @@ def add_workout(request):
             return redirect(next_url or 'tools:plan')
     else:
         form = WorkoutPlanForm(initial={'date': selected_date})
-        exercise_formset = ExerciseFormSet(prefix='exercises')
+        exercise_formset = ExerciseFormSet(initial=[{}], prefix='exercises')
 
     return render(request, 'tools/add_workout.html', {
         'form': form,
         'exercise_formset': exercise_formset,
         'selected_date': selected_date,
         'next': next_url or '',
+        **_exercise_context(request.user),
     })
 
 
@@ -274,6 +307,7 @@ def edit_workout(request, workout_id):
                 form.cleaned_data.get('duration_minutes'),
                 form.cleaned_data.get('goal', ''),
                 form.cleaned_data.get('notes', ''),
+                workout.legacy_exercises_text,
             )
             messages.success(request, 'Workout updated successfully!')
             return redirect(next_url or 'tools:plan')
@@ -285,14 +319,42 @@ def edit_workout(request, workout_id):
             'goal': workout.goal,
             'notes': workout.notes,
         })
-        exercise_formset = ExerciseFormSet(initial=workout.exercises, prefix='exercises')
+        exercise_formset = ExerciseFormSet(
+            initial=workout.exercises or [{}],
+            prefix='exercises',
+        )
 
     return render(request, 'tools/edit_workout.html', {
         'form': form,
         'exercise_formset': exercise_formset,
         'workout': workout,
         'next': next_url or '',
+        **_exercise_context(request.user),
     })
+
+
+@login_required
+@require_POST
+def create_exercise(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except (UnicodeDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid request.'}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({'error': 'Invalid request.'}, status=400)
+    form = CustomExerciseForm(payload)
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors.get_json_data()}, status=400)
+    entry, created = create_custom_exercise(
+        request.user.id,
+        form.cleaned_data['name'],
+        form.cleaned_data['type'],
+    )
+    if entry is None:
+        return JsonResponse({
+            'error': f'You can save up to {MAX_CUSTOM_EXERCISES} custom exercises.',
+        }, status=400)
+    return JsonResponse(entry, status=201 if created else 200)
 
 
 @login_required

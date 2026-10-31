@@ -17,24 +17,7 @@
 
 <section class="fl-card">
     <div class="fl-label">Exercises</div>
-    {% if workout.exercises %}
-        <table class="fl-exercise-table">
-            <thead>
-                <tr><th>Exercise</th><th>Sets</th><th>Reps</th></tr>
-            </thead>
-            <tbody>
-                {% for exercise in workout.exercises %}
-                <tr>
-                    <td>{{ exercise.name }}</td>
-                    <td>{% if exercise.sets %}{{ exercise.sets }}{% else %}&mdash;{% endif %}</td>
-                    <td>{% if exercise.reps %}{{ exercise.reps }}{% else %}&mdash;{% endif %}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p class="fl-muted">No exercises added yet.</p>
-    {% endif %}
+    {% include 'tools/_workout_exercises.html' with exercises=workout.exercises legacy=workout.legacy_exercises_text full=True %}
 </section>
 
 {% if workout.notes %}

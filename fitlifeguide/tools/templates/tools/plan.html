@@ -85,6 +85,9 @@
                                         <a class="fl-plan-entry-title" href="{% url 'tools:edit_workout' day.workout.id %}?next={{ request.get_full_path|urlencode }}">{{ day.workout.title }}</a>
                                         <span class="fl-muted">{% if day.workout.duration_minutes %}{{ day.workout.duration_minutes }}{% else %}--{% endif %} min</span>
                                         <span class="fl-pill">{{ day.workout.get_status_display }}</span>
+                                        <div class="fl-plan-entry-exercises">
+                                            {% include 'tools/_workout_exercises.html' with exercises=day.workout.exercises legacy=day.workout.legacy_exercises_text %}
+                                        </div>
                                     </div>
                                 {% else %}
                                     <a class="fl-plan-add" href="{% url 'tools:add_workout' %}?date={{ day.date|date:'Y-m-d' }}&amp;next={{ request.get_full_path|urlencode }}">+ Add workout</a>

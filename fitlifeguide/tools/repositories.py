@@ -3,12 +3,14 @@ from datetime import timedelta
 from django.utils import timezone
 
 from fitlifeguide.domain import (
+    MAX_CUSTOM_EXERCISES,
     MEAL_TYPES,
     WEEKDAYS,
     Author,
     Meal,
     Workout,
-    normalize_exercises,
+    exercises_with_legacy,
+    serialize_exercises,
     parse_date,
 )
 from fitlifeguide.firestore import count_query, get_db
@@ -42,13 +44,18 @@ def _meal_from_doc(doc):
 
 def _workout_from_doc(doc):
     data = doc.to_dict() or {}
+    exercises, legacy_exercises = exercises_with_legacy(
+        data.get('exercises'),
+        data.get('legacy_exercises_text'),
+    )
     return Workout(
         id=doc.id,
         date=parse_date(data.get('date')),
         week_start=parse_date(data.get('week_start')),
         day_of_week=data.get('day_of_week', ''),
         title=data.get('title', ''),
-        exercises=normalize_exercises(data.get('exercises')),
+        exercises=exercises,
+        legacy_exercises_text=legacy_exercises,
         duration_minutes=data.get('duration_minutes'),
         goal=data.get('goal', ''),
         status=data.get('status', 'planned'),
@@ -131,6 +138,100 @@ def get_workout(workout_id, uid=None):
     return _workout_from_doc(snap)
 
 
+def _catalog_entry(data):
+    name = str(data.get('name') or '').strip()
+    exercise_type = data.get('type')
+    if exercise_type not in ('strength', 'timed', 'cardio'):
+        exercise_type = 'strength'
+    return {
+        'name': name,
+        'muscle_group': str(data.get('muscle_group') or 'Other').strip(),
+        'type': exercise_type,
+    }
+
+
+def list_exercise_catalog(uid):
+    entries = {}
+    for doc in get_db().collection('exercise_catalog').stream():
+        data = doc.to_dict() or {}
+        owner_id = data.get('owner_id') or ''
+        if owner_id and owner_id != uid:
+            continue
+        entry = _catalog_entry(data)
+        if not entry['name']:
+            continue
+        key = entry['name'].casefold()
+        existing = entries.get(key)
+        if existing and existing['owner_id'] and not owner_id:
+            continue
+        entries[key] = {**entry, 'owner_id': owner_id}
+    catalog = [
+        {key: value for key, value in entry.items() if key != 'owner_id'}
+        for entry in entries.values()
+    ]
+    catalog.sort(key=lambda item: item['name'].lower())
+    return catalog
+
+
+def create_custom_exercise(uid, name, exercise_type):
+    clean_name = str(name or '').strip()
+    if not clean_name:
+        return None, False
+    if exercise_type not in ('strength', 'timed', 'cardio'):
+        exercise_type = 'strength'
+    key = clean_name.casefold()
+    custom_docs = list(
+        get_db().collection('exercise_catalog').where('owner_id', '==', uid).stream()
+    )
+    for doc in custom_docs:
+        data = doc.to_dict() or {}
+        entry = _catalog_entry(data)
+        if entry['name'].casefold() == key:
+            return entry, False
+    if len(custom_docs) >= MAX_CUSTOM_EXERCISES:
+        return None, False
+    doc_ref = get_db().collection('exercise_catalog').document()
+    payload = {
+        'name': clean_name,
+        'name_lower': key,
+        'muscle_group': 'Custom',
+        'type': exercise_type,
+        'owner_id': uid,
+        'created_at': _now(),
+    }
+    doc_ref.set(payload)
+    return _catalog_entry(payload), True
+
+
+def recent_exercises(uid, limit=5):
+    recent = []
+    seen = set()
+    for workout in list_workouts_by_user(uid, limit=10):
+        for exercise in workout.exercises:
+            key = exercise['name'].casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            recent.append({
+                field: exercise.get(field)
+                for field in (
+                    'name',
+                    'type',
+                    'type_label',
+                    'sets',
+                    'reps',
+                    'weight_kg',
+                    'seconds',
+                    'minutes',
+                    'distance_km',
+                    'display',
+                )
+            })
+            if len(recent) >= limit:
+                return recent
+    return recent
+
+
 def _day_code(value):
     return WEEKDAYS[value.weekday()][0]
 
@@ -175,7 +276,16 @@ def set_meal_status(meal_id, status):
     get_db().collection('meals').document(meal_id).update({'status': status, 'updated_at': _now()})
 
 
-def add_workout(user, workout_date, title, exercises=None, duration_minutes=None, goal='', notes=''):
+def add_workout(
+    user,
+    workout_date,
+    title,
+    exercises=None,
+    duration_minutes=None,
+    goal='',
+    notes='',
+    legacy_exercises_text='',
+):
     db = get_db()
     doc_ref = db.collection('workouts').document()
     doc_ref.set({
@@ -186,7 +296,8 @@ def add_workout(user, workout_date, title, exercises=None, duration_minutes=None
         'week_start': (workout_date - timedelta(days=workout_date.weekday())).isoformat(),
         'day_of_week': _day_code(workout_date),
         'title': title,
-        'exercises': normalize_exercises(exercises),
+        'exercises': serialize_exercises(exercises),
+        'legacy_exercises_text': legacy_exercises_text or '',
         'duration_minutes': duration_minutes,
         'goal': goal,
         'status': 'planned',
@@ -197,14 +308,24 @@ def add_workout(user, workout_date, title, exercises=None, duration_minutes=None
     return _workout_from_doc(doc_ref.get())
 
 
-def update_workout(workout, workout_date, title, exercises=None, duration_minutes=None, goal='', notes=''):
+def update_workout(
+    workout,
+    workout_date,
+    title,
+    exercises=None,
+    duration_minutes=None,
+    goal='',
+    notes='',
+    legacy_exercises_text='',
+):
     doc_ref = get_db().collection('workouts').document(workout.id)
     doc_ref.update({
         'date': workout_date.isoformat(),
         'week_start': (workout_date - timedelta(days=workout_date.weekday())).isoformat(),
         'day_of_week': _day_code(workout_date),
         'title': title,
-        'exercises': normalize_exercises(exercises),
+        'exercises': serialize_exercises(exercises),
+        'legacy_exercises_text': legacy_exercises_text or '',
         'duration_minutes': duration_minutes,
         'goal': goal,
         'notes': notes,
@@ -288,6 +409,7 @@ def copy_previous_week(user, target_week_start):
             workout.duration_minutes,
             workout.goal,
             workout.notes,
+            workout.legacy_exercises_text,
         )
         target_dates.add(target_date)
         copied_workouts += 1

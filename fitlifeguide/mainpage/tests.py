@@ -22,11 +22,24 @@ class SearchTests(SimpleTestCase):
     @patch('mainpage.repositories.list_workouts_by_user')
     def test_search_workouts_only_returns_owner_matches(self, list_workouts):
         list_workouts.return_value = [
-            SimpleNamespace(title='Push day', exercises='Bench press'),
-            SimpleNamespace(title='Leg day', exercises='Squats'),
+            SimpleNamespace(
+                title='Push day',
+                exercises=[{'name': 'Bench press', 'type': 'strength', 'sets': 3, 'reps': 8}],
+                legacy_exercises_text='',
+            ),
+            SimpleNamespace(
+                title='Leg day',
+                exercises=[{'name': 'Squat', 'type': 'strength', 'sets': 3, 'reps': 5}],
+                legacy_exercises_text='',
+            ),
+            SimpleNamespace(
+                title='Old session',
+                exercises=[],
+                legacy_exercises_text='Bench press 3x10',
+            ),
         ]
 
         results = search_workouts('user-1', 'bench')
 
-        self.assertEqual([workout.title for workout in results], ['Push day'])
+        self.assertEqual([workout.title for workout in results], ['Push day', 'Old session'])
         list_workouts.assert_called_once_with('user-1')

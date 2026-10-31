@@ -1,0 +1,36 @@
+{% if exercises %}
+<ul class="fl-exercise-summary" aria-label="Exercises">
+    {% if full %}
+        {% for exercise in exercises %}
+        <li>
+            <span class="fl-exercise-summary-name">{{ exercise.display }}</span>
+            <span class="fl-pill fl-exercise-type-badge">{{ exercise.type_label }}</span>
+        </li>
+        {% endfor %}
+    {% else %}
+        {% for exercise in exercises|slice:":3" %}
+        <li>
+            <span class="fl-exercise-summary-name">{{ exercise.display }}</span>
+            <span class="fl-pill fl-exercise-type-badge">{{ exercise.type_label }}</span>
+        </li>
+        {% endfor %}
+        {% if exercises|length > 3 %}
+        <li class="fl-exercise-more">+{{ exercises|length|add:"-3" }} more</li>
+        {% endif %}
+    {% endif %}
+</ul>
+{% elif legacy %}
+<div class="fl-exercise-legacy-note">
+    <span class="fl-label">Old notes</span>
+    <p class="fl-muted">{% if full %}{{ legacy|linebreaksbr }}{% else %}{{ legacy|truncatechars:120 }}{% endif %}</p>
+</div>
+{% else %}
+{% if full %}<p class="fl-muted">No exercises added yet.</p>{% endif %}
+{% endif %}
+
+{% if exercises and legacy %}
+<div class="fl-exercise-legacy-note">
+    <span class="fl-label">Old notes</span>
+    <p class="fl-muted">{% if full %}{{ legacy|linebreaksbr }}{% else %}{{ legacy|truncatechars:120 }}{% endif %}</p>
+</div>
+{% endif %}

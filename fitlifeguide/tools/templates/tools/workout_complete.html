@@ -9,6 +9,9 @@
         <p class="fl-muted">
             {{ workout.title }}{% if workout.duration_minutes %} &middot; {{ workout.duration_minutes }} min{% endif %}
         </p>
+        <div class="fl-complete-exercises">
+            {% include 'tools/_workout_exercises.html' with exercises=workout.exercises legacy=workout.legacy_exercises_text %}
+        </div>
 
         <div class="fl-grid-3 fl-complete-stats">
             <div class="fl-card fl-stat">

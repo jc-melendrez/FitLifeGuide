@@ -1,57 +1,55 @@
-<div class="fl-field" data-exercise-formset>
-    <div class="fl-label">Exercises</div>
+<div class="fl-field fl-exercise-builder" data-exercise-builder data-create-url="{% url 'tools:create_exercise' %}" data-max="{{ max_exercises|default:30 }}">
+    <noscript>
+        <style>
+            .fl-exercise-row .fl-exercise-fields { display: grid !important; }
+            .fl-exercise-row .fl-exercise-compact { display: none !important; }
+            .fl-more-details > summary { display: list-item; }
+        </style>
+    </noscript>
+    <div class="fl-exercise-head">
+        <div class="fl-label">Exercises</div>
+        <div class="fl-exercise-estimate" data-estimate-wrap hidden>
+            <span data-estimate-text></span>
+            <button type="button" class="fl-exercise-link" data-use-estimate>Use as duration</button>
+        </div>
+    </div>
+    <p class="fl-muted fl-exercise-hint">Build your session with strength, timed, or cardio work.</p>
+
+    {% if exercise_formset.non_form_errors %}
+    <div class="fl-alert fl-alert-error">{{ exercise_formset.non_form_errors }}</div>
+    {% endif %}
+
+    <div class="fl-exercise-chips" data-chips hidden>
+        <span class="fl-label">Recent</span>
+        <div class="fl-pill-row" data-chip-list></div>
+    </div>
+
     {{ exercise_formset.management_form }}
+
     <div class="fl-exercise-list" data-exercise-rows>
         {% for exercise_form in exercise_formset %}
-        <div class="fl-exercise-row" data-exercise-row>
-            {{ exercise_form.name }}
-            {{ exercise_form.sets }}
-            {{ exercise_form.reps }}
-            <button type="button" class="fl-btn fl-btn-secondary" data-remove-exercise>Remove</button>
-            <span hidden>{{ exercise_form.DELETE }}</span>
-            {{ exercise_form.name.errors }}
-            {{ exercise_form.sets.errors }}
-            {{ exercise_form.reps.errors }}
-        </div>
+            {% include 'tools/_exercise_row.html' with form=exercise_form %}
         {% endfor %}
     </div>
-    <button type="button" class="fl-btn fl-btn-secondary" data-add-exercise>+ Add exercise</button>
+
+    <div class="fl-exercise-add">
+        <button type="button" class="fl-btn fl-btn-secondary" data-add-exercise>+ Add exercise</button>
+        <span class="fl-muted fl-exercise-limit">Up to {{ max_exercises|default:30 }}</span>
+    </div>
+
+    {% if workout.legacy_exercises_text %}
+    <div class="fl-exercise-legacy">
+        <div class="fl-label">Old notes</div>
+        <p class="fl-muted">{{ workout.legacy_exercises_text|linebreaksbr }}</p>
+    </div>
+    {% endif %}
+
+    <div class="fl-exercise-live fl-muted" aria-live="polite" data-builder-live></div>
+
     <template data-exercise-empty>
-        <div class="fl-exercise-row" data-exercise-row>
-            {{ exercise_formset.empty_form.name }}
-            {{ exercise_formset.empty_form.sets }}
-            {{ exercise_formset.empty_form.reps }}
-            <button type="button" class="fl-btn fl-btn-secondary" data-remove-exercise>Remove</button>
-            <span hidden>{{ exercise_formset.empty_form.DELETE }}</span>
-        </div>
+        {% include 'tools/_exercise_row.html' with form=exercise_formset.empty_form %}
     </template>
+
+    {{ exercise_catalog|json_script:"exercise-catalog-data" }}
+    {{ recent_exercises|json_script:"recent-exercises-data" }}
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var formset = document.querySelector('[data-exercise-formset]');
-    if (!formset) return;
-
-    var rows = formset.querySelector('[data-exercise-rows]');
-    var total = formset.querySelector('input[name$="-TOTAL_FORMS"]');
-    var template = formset.querySelector('template[data-exercise-empty]');
-
-    formset.querySelector('[data-add-exercise]').addEventListener('click', function () {
-        var index = parseInt(total.value, 10);
-        rows.insertAdjacentHTML('beforeend', template.innerHTML.replace(/__prefix__/g, index));
-        total.value = index + 1;
-    });
-
-    rows.addEventListener('click', function (event) {
-        var button = event.target.closest('[data-remove-exercise]');
-        if (!button) return;
-        var row = button.closest('[data-exercise-row]');
-        var del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-        if (del) {
-            del.checked = true;
-            row.hidden = true;
-        } else {
-            row.remove();
-        }
-    });
-});
-</script>

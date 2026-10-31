@@ -68,7 +68,10 @@
         <a class="fl-activity-row" href="{% url 'tools:workout_detail' workout.id %}">
             <div>
                 <strong>{{ workout.title }}</strong>
-                <div class="fl-muted">{{ workout.date|date:"M d" }} A� {{ workout.get_status_display }}</div>
+                <div class="fl-muted">{{ workout.date|date:"M d" }} &middot; {{ workout.get_status_display }}</div>
+                <div class="fl-activity-exercises">
+                    {% include 'tools/_workout_exercises.html' with exercises=workout.exercises legacy=workout.legacy_exercises_text %}
+                </div>
             </div>
             <span class="fl-pill">{{ workout.duration_minutes|default:"-" }} min</span>
         </a>

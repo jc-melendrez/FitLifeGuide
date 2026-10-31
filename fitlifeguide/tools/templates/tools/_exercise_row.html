@@ -1,0 +1,61 @@
+<div class="fl-exercise-row" data-exercise-row>
+    {{ form.order }}
+    <div class="fl-exercise-main">
+        <button type="button" class="fl-exercise-handle" draggable="true" data-drag-handle aria-label="Drag to reorder exercise" title="Drag to reorder">&#8942;&#8942;</button>
+        <div class="fl-exercise-name">
+            <label class="fl-sr-only" for="{{ form.name.id_for_label }}">Exercise name</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+            <div class="fl-exercise-suggest" id="{{ form.name.id_for_label }}-suggest" data-suggest role="listbox" hidden></div>
+        </div>
+        <div class="fl-exercise-type">
+            <label class="fl-sr-only" for="{{ form.type.id_for_label }}">Exercise type</label>
+            {{ form.type }}
+            {{ form.type.errors }}
+        </div>
+        <div class="fl-exercise-row-actions">
+            <button type="button" class="fl-exercise-icon" data-move-up aria-label="Move exercise up">&uarr;</button>
+            <button type="button" class="fl-exercise-icon" data-move-down aria-label="Move exercise down">&darr;</button>
+            <button type="button" class="fl-exercise-edit" data-toggle-fields aria-expanded="false">Edit</button>
+            <button type="button" class="fl-exercise-icon fl-exercise-remove" data-remove-exercise aria-label="Remove exercise">&times;</button>
+        </div>
+    </div>
+
+    <p class="fl-exercise-compact" data-row-summary>New exercise</p>
+
+    <div class="fl-exercise-fields">
+        <div class="fl-exercise-control" data-type-fields="strength timed">
+            <label for="{{ form.sets.id_for_label }}">Sets</label>
+            {{ form.sets }}
+            {{ form.sets.errors }}
+        </div>
+        <div class="fl-exercise-control" data-type-fields="strength">
+            <label for="{{ form.reps.id_for_label }}">Reps</label>
+            {{ form.reps }}
+            {{ form.reps.errors }}
+        </div>
+        <div class="fl-exercise-control" data-type-fields="strength">
+            <label for="{{ form.weight_kg.id_for_label }}">Weight (kg)</label>
+            {{ form.weight_kg }}
+            {{ form.weight_kg.errors }}
+        </div>
+        <div class="fl-exercise-control" data-type-fields="timed">
+            <label for="{{ form.seconds.id_for_label }}">Seconds</label>
+            {{ form.seconds }}
+            {{ form.seconds.errors }}
+        </div>
+        <div class="fl-exercise-control" data-type-fields="cardio">
+            <label for="{{ form.minutes.id_for_label }}">Minutes</label>
+            {{ form.minutes }}
+            {{ form.minutes.errors }}
+        </div>
+        <div class="fl-exercise-control" data-type-fields="cardio">
+            <label for="{{ form.distance_km.id_for_label }}">Distance (km)</label>
+            {{ form.distance_km }}
+            {{ form.distance_km.errors }}
+        </div>
+    </div>
+
+    {{ form.non_field_errors }}
+    <div class="fl-exercise-live" aria-live="polite" data-live></div>
+</div>
