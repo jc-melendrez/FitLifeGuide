@@ -162,7 +162,22 @@ class CustomLoginView(LoginView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect('home')
+        if request.GET.get('restart'):
+            request.session.pop('pre_2fa_user_id', None)
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pending = bool(self.request.session.get('pre_2fa_user_id'))
+        context['otp_pending'] = pending
+        if pending and 'otp_form' not in context:
+            context['otp_form'] = OTPForm()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        if request.POST.get('step') == 'otp':
+            return self._verify_otp_step(request)
+        return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
         user = form.get_user()
@@ -174,7 +189,37 @@ class CustomLoginView(LoginView):
             logger.exception('OTP email failed for %s', user.email)
             messages.error(self.request, 'Could not send the login code. Please try again later.')
             return redirect('login')
-        return redirect('verify_otp')
+        return self.render_to_response(
+            self.get_context_data(otp_pending=True, otp_form=OTPForm())
+        )
+
+    def _verify_otp_step(self, request):
+        user_id = request.session.get('pre_2fa_user_id')
+        if not user_id:
+            return redirect('login')
+
+        user = get_user(user_id)
+        if not user:
+            request.session.pop('pre_2fa_user_id', None)
+            return redirect('login')
+
+        form = OTPForm(request.POST)
+        if form.is_valid():
+            record = get_otp(user.id)
+            if not record:
+                form.add_error('otp', 'OTP has expired. Please request a new one.')
+            elif form.cleaned_data['otp'] != record.get('code'):
+                form.add_error('otp', 'Invalid OTP. Please try again.')
+            else:
+                user.backend = settings.AUTHENTICATION_BACKENDS[0]
+                login(request, user)
+                request.session.pop('pre_2fa_user_id', None)
+                delete_otp(user.id)
+                return redirect('home')
+
+        return self.render_to_response(
+            self.get_context_data(otp_pending=True, otp_form=form)
+        )
 
 
 def verify_otp(request):

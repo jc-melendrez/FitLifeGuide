@@ -218,9 +218,7 @@ def workout_hub(request):
         }
 
     return render(request, 'tools/workout_hub.html', {
-        'workout_plan': {'name': 'My Workout Plan'},
         'week_plan': week_plan,
-        'user_workouts': user_workouts,
         'other_workouts': community_workouts(request.user.id, limit=3),
         'week_start': week_start,
         'week_end': week_end,

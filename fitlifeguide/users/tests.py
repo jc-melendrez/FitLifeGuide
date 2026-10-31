@@ -68,12 +68,13 @@ class FirestoreAuthFlowTests(SimpleTestCase):
             'username': username,
             'password': password,
         })
-        self.assertRedirects(response, reverse('verify_otp'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('pre_2fa_user_id', self.client.session)
 
         otp = get_otp(user.id)
         self.assertIsNotNone(otp)
 
-        response = self.client.post(reverse('verify_otp'), {'otp': otp['code']})
+        response = self.client.post(reverse('login'), {'step': 'otp', 'otp': otp['code']})
         self.assertRedirects(response, reverse('home'))
 
         response = self.client.post(reverse('profile'), {

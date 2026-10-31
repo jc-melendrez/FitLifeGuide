@@ -8,3 +8,4 @@ env/
 staticfiles/
 firebase-debug.log
 firestore-debug.log
+serviceAccountKey.json

@@ -1,179 +1,76 @@
 {% extends 'mainpage/base.html' %}
-{% load static %}
+{% block title %}Workout hub - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-10 col-md-11 mx-auto">
-            <div class="row mb-4">
-                <div class="col-md-8">
-                    <h1 class="display-4 mb-3 grad">Workout Hub</h1>
-                    <p class="lead text-light-emphasis">Track your fitness journey and get inspired by others</p>
-                    <div class="d-flex align-items-center gap-3">
-                        <p class="text-light-emphasis mb-0">
-                            <i class="fas fa-calendar-alt me-2"></i>Week of {{ week_start|date:"M d, Y" }} to {{ week_end|date:"M d, Y" }}
-                        </p>
-                        <div class="btn-group">
-                            <a href="?week={{ week_start|date:'Y-m-d' }}&direction=prev" class="btn btn-sm btn-outline-info">
-                                <i class="fas fa-chevron-left"></i> Previous Week
-                            </a>
-                            <a href="?week={{ week_start|date:'Y-m-d' }}&direction=next" class="btn btn-sm btn-outline-info">
-                                Next Week <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="{% url 'tools:add_workout' %}" class="btn btn-cyan">
-                        <i class="fas fa-plus"></i> Add New Workout
-                    </a>
-                </div>
-            </div>
+<div class="fl-plan">
+    <div class="fl-plan-head">
+        <div>
+            <div class="fl-label">Week of {{ week_start|date:"M j" }} - {{ week_end|date:"M j" }}</div>
+            <h1 class="fl-h fl-plan-title">Workout <span class="fl-lime">hub</span></h1>
+            <p class="fl-muted fl-plan-subtitle">Plan your week and get ideas from the community.</p>
+        </div>
 
-            <!-- Your Workouts Section -->
-            <div class="card bg-dark border-secondary text-light shadow-sm mb-4">
-                <div class="card-header bg-transparent border-secondary">
-                    <h3 class="card-title mb-0 text-info">
-                        <i class="fas fa-calendar-check me-2"></i>Your Weekly Workouts
-                    </h3>
-                </div>
-                <div class="card-body">
-                    {% if user_workouts %}
-                        <div class="table-responsive">
-                            <table class="table table-hover table-dark">
-                                <thead>
-                                    <tr>
-                                        <th>Day</th>
-                                        <th>Title</th>
-                                        <th>Duration</th>
-                                        <th>Goal</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for day, workouts in week_plan.items %}
-                                        <tr {% if not workouts %}class="text-light-emphasis"{% endif %}>
-                                            <td>
-                                                <strong>{{ day }}</strong><br>
-                                                <small>{{ workouts.date|date:"M d" }}</small>
-                                            </td>
-                                            <td colspan="5">
-                                                {% if workouts.workout %}
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <div>
-                                                            <strong>{{ workouts.workout.title }}</strong>
-                                                            <br>
-                                                            <small class="text-light-emphasis">{{ workouts.workout.exercises|truncatewords:5 }}</small>
-                                                        </div>
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <span>{{ workouts.workout.duration_minutes }} mins</span>
-                                                            <span class="text-light-emphasis">|</span>
-                                                            <span>{{ workouts.workout.goal|default:"No goal set" }}</span>
-                                                            <span class="text-light-emphasis">|</span>
-                                                            <form method="post" action="{% url 'tools:update_workout_status' workouts.workout.id %}" class="d-inline">
-                                                                {% csrf_token %}
-                                                                <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary" onchange="this.form.submit()">
-                                                                    {% for status, label in workouts.workout.STATUS_CHOICES %}
-                                                                        <option value="{{ status }}" {% if workouts.workout.status == status %}selected{% endif %}>
-                                                                            {{ label }}
-                                                                        </option>
-                                                                    {% endfor %}
-                                                                </select>
-                                                            </form>
-                                                            <div class="btn-group">
-                                                                <a href="{% url 'tools:edit_workout' workouts.workout.id %}" class="btn btn-sm btn-outline-info">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </a>
-                                                                <form method="post" action="{% url 'tools:delete_workout' workouts.workout.id %}" class="d-inline">
-                                                                    {% csrf_token %}
-                                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure?')">
-                                                                        <i class="fas fa-trash"></i>
-                                                                    </button>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                {% else %}
-                                                    <a href="{% url 'tools:add_workout' %}?date={{ workouts.date|date:'Y-m-d' }}" class="btn btn-sm btn-outline-info">
-                                                        <i class="fas fa-plus"></i> Add Workout
-                                                    </a>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-4">
-                            <p class="text-light-emphasis">No workouts planned for this week.</p>
-                            <a href="{% url 'tools:add_workout' %}" class="btn btn-cyan">
-                                <i class="fas fa-plus"></i> Plan Your First Workout
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
+        <div class="fl-plan-actions">
+            <div class="fl-weeknav">
+                <a href="?week={{ week_start|date:'Y-m-d' }}&amp;direction=prev" aria-label="Previous week">&lsaquo;</a>
+                <span>{{ week_start|date:"M j" }} - {{ week_end|date:"M j" }}</span>
+                <a href="?week={{ week_start|date:'Y-m-d' }}&amp;direction=next" aria-label="Next week">&rsaquo;</a>
             </div>
-
-            <!-- Community Workouts Section -->
-            <div class="card bg-dark border-secondary text-light shadow-sm">
-                <div class="card-header bg-transparent border-secondary">
-                    <h3 class="card-title mb-0 text-info">
-                        <i class="fas fa-users me-2"></i>Community Workouts
-                    </h3>
-                </div>
-                <div class="card-body">
-                    {% if other_workouts %}
-                        <div class="row">
-                            {% for workout in other_workouts %}
-                                <div class="col-md-6 mb-3">
-                                    <div class="card bg-dark border-secondary h-100 workout-card">
-                                        <div class="card-body">
-                                            <h5 class="card-title text-info">{{ workout.title }}</h5>
-                                            <h6 class="card-subtitle mb-2 text-light-emphasis">by {{ workout.user.username }}</h6>
-                                            <p class="card-text text-light-emphasis">
-                                                <small>
-                                                    <i class="fas fa-calendar"></i> {{ workout.date|date:"M d, Y" }} ({{ workout.day_of_week }})
-                                                    <br>
-                                                    <i class="fas fa-clock"></i> {{ workout.duration_minutes }} mins
-                                                    {% if workout.goal %}
-                                                    <br>
-                                                    <i class="fas fa-bullseye"></i> Goal: {{ workout.goal }}
-                                                    {% endif %}
-                                                </small>
-                                            </p>
-                                            <p class="card-text text-light">{{ workout.exercises|truncatewords:30 }}</p>
-                                            {% if workout.notes %}
-                                            <p class="card-text text-light-emphasis">
-                                                <small><i class="fas fa-sticky-note"></i> {{ workout.notes|truncatewords:20 }}</small>
-                                            </p>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-light-emphasis text-center py-4">No community workouts available yet.</p>
-                    {% endif %}
-                </div>
-            </div>
+            <a class="fl-btn" href="{% url 'tools:add_workout' %}?next={{ request.get_full_path|urlencode }}">Add workout</a>
         </div>
     </div>
-</div>
 
-<style>
-.workout-card:hover {
-    background-color: #1f1f1f;
-    border-color: #0d6efd;
-    transition: 0.3s ease;
-}
-.table-dark {
-    --bs-table-bg: transparent;
-    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
-    --bs-table-hover-bg: rgba(255, 255, 255, 0.075);
-    color: #fff;
-}
-</style>
-{% endblock %} 
+    <div class="fl-grid-2">
+        {% for day, workouts in week_plan.items %}
+            <section class="fl-card{% if workouts.workout.status == 'completed' %} fl-card-highlight{% endif %}">
+                <div class="fl-label">{{ day }} &middot; {{ workouts.date|date:"M d" }}</div>
+
+                {% if workouts.workout %}
+                    <h2 class="fl-h">{{ workouts.workout.title }}</h2>
+                    <p class="fl-muted">
+                        {% if workouts.workout.duration_minutes %}{{ workouts.workout.duration_minutes }} min{% else %}&mdash;{% endif %}
+                        &middot; {{ workouts.workout.goal|default:"No goal set" }}
+                    </p>
+                    <p class="fl-muted">{{ workouts.workout.exercises|truncatewords:8 }}</p>
+
+                    <form method="post" action="{% url 'tools:update_workout_status' workouts.workout.id %}">
+                        {% csrf_token %}
+                        <div class="fl-field">
+                            <label class="fl-label" for="status-{{ workouts.workout.id }}">Status</label>
+                            <select name="status" id="status-{{ workouts.workout.id }}" onchange="this.form.submit()">
+                                {% for status, label in workouts.workout.STATUS_CHOICES %}
+                                    <option value="{{ status }}" {% if workouts.workout.status == status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+
+                    <div class="fl-pill-row">
+                        <a class="fl-btn fl-btn-secondary" href="{% url 'tools:edit_workout' workouts.workout.id %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+                        <form method="post" action="{% url 'tools:delete_workout' workouts.workout.id %}" class="fl-inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="fl-btn fl-btn-danger" onclick="return confirm('Delete this workout?')">Delete</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <p class="fl-muted">Rest day.</p>
+                    <a class="fl-plan-add" href="{% url 'tools:add_workout' %}?date={{ workouts.date|date:'Y-m-d' }}&amp;next={{ request.get_full_path|urlencode }}">+ Add workout</a>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+
+    <section class="fl-card fl-plan-ideas">
+        <div class="fl-label">Ideas from the community</div>
+        {% if other_workouts %}
+            <div class="fl-pill-row">
+                {% for workout in other_workouts %}
+                    <span class="fl-pill">Workout &middot; {{ workout.title|truncatewords:3 }} &middot; {{ workout.user.username }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="fl-muted">No community workouts yet.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
