@@ -181,6 +181,36 @@ class Author:
         return hash(self.id)
 
 
+def normalize_exercises(value):
+    if isinstance(value, str):
+        value = value.splitlines()
+    items = []
+    for item in value or []:
+        if isinstance(item, str):
+            name = item.strip()
+            sets, reps = None, ''
+        elif isinstance(item, dict):
+            name = str(item.get('name') or '').strip()
+            sets = item.get('sets')
+            reps = str(item.get('reps') or '').strip()
+        else:
+            continue
+        if name:
+            items.append({'name': name, 'sets': sets, 'reps': reps})
+    return items
+
+
+def exercise_text(value):
+    parts = []
+    for item in normalize_exercises(value):
+        parts.append(item['name'])
+        if item['sets']:
+            parts.append(str(item['sets']))
+        if item['reps']:
+            parts.append(item['reps'])
+    return ' '.join(parts)
+
+
 @dataclass
 class Workout:
     STATUS_CHOICES = WORKOUT_STATUS
@@ -190,7 +220,7 @@ class Workout:
     week_start: date
     day_of_week: str
     title: str
-    exercises: str = ''
+    exercises: list = field(default_factory=list)
     duration_minutes: int | None = None
     goal: str = ''
     status: str = 'planned'
@@ -345,7 +375,7 @@ def workout_from_doc(doc_id, data):
         week_start=parse_date(data.get('week_start')),
         day_of_week=data.get('day_of_week', ''),
         title=data.get('title', ''),
-        exercises=data.get('exercises', ''),
+        exercises=normalize_exercises(data.get('exercises')),
         duration_minutes=data.get('duration_minutes'),
         goal=data.get('goal', ''),
         status=data.get('status', 'planned'),

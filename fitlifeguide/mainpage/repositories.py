@@ -1,4 +1,5 @@
 from community.repositories import list_posts
+from fitlifeguide.domain import exercise_text
 from fitlifeguide.firestore import count_query, get_db
 from tools.repositories import list_workouts_by_user
 
@@ -18,7 +19,7 @@ def search_workouts(uid, query, limit=5):
     needle = query.lower()
     matches = [
         workout for workout in list_workouts_by_user(uid)
-        if needle in workout.title.lower() or needle in workout.exercises.lower()
+        if needle in workout.title.lower() or needle in exercise_text(workout.exercises).lower()
     ]
     return matches[:limit]
 

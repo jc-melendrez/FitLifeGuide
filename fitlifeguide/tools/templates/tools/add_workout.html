@@ -31,11 +31,7 @@
         </div>
     </div>
 
-    <div class="fl-field">
-        <label class="fl-label" for="{{ form.exercises.id_for_label }}">Exercises</label>
-        {{ form.exercises }}
-        {{ form.exercises.errors }}
-    </div>
+    {% include 'tools/_exercise_formset.html' %}
 
     <div class="fl-grid-2">
         <div class="fl-field">

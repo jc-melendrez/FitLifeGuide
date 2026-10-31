@@ -1,0 +1,57 @@
+<div class="fl-field" data-exercise-formset>
+    <div class="fl-label">Exercises</div>
+    {{ exercise_formset.management_form }}
+    <div class="fl-exercise-list" data-exercise-rows>
+        {% for exercise_form in exercise_formset %}
+        <div class="fl-exercise-row" data-exercise-row>
+            {{ exercise_form.name }}
+            {{ exercise_form.sets }}
+            {{ exercise_form.reps }}
+            <button type="button" class="fl-btn fl-btn-secondary" data-remove-exercise>Remove</button>
+            <span hidden>{{ exercise_form.DELETE }}</span>
+            {{ exercise_form.name.errors }}
+            {{ exercise_form.sets.errors }}
+            {{ exercise_form.reps.errors }}
+        </div>
+        {% endfor %}
+    </div>
+    <button type="button" class="fl-btn fl-btn-secondary" data-add-exercise>+ Add exercise</button>
+    <template data-exercise-empty>
+        <div class="fl-exercise-row" data-exercise-row>
+            {{ exercise_formset.empty_form.name }}
+            {{ exercise_formset.empty_form.sets }}
+            {{ exercise_formset.empty_form.reps }}
+            <button type="button" class="fl-btn fl-btn-secondary" data-remove-exercise>Remove</button>
+            <span hidden>{{ exercise_formset.empty_form.DELETE }}</span>
+        </div>
+    </template>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var formset = document.querySelector('[data-exercise-formset]');
+    if (!formset) return;
+
+    var rows = formset.querySelector('[data-exercise-rows]');
+    var total = formset.querySelector('input[name$="-TOTAL_FORMS"]');
+    var template = formset.querySelector('template[data-exercise-empty]');
+
+    formset.querySelector('[data-add-exercise]').addEventListener('click', function () {
+        var index = parseInt(total.value, 10);
+        rows.insertAdjacentHTML('beforeend', template.innerHTML.replace(/__prefix__/g, index));
+        total.value = index + 1;
+    });
+
+    rows.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-remove-exercise]');
+        if (!button) return;
+        var row = button.closest('[data-exercise-row]');
+        var del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (del) {
+            del.checked = true;
+            row.hidden = true;
+        } else {
+            row.remove();
+        }
+    });
+});
+</script>

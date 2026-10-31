@@ -578,6 +578,66 @@ body.fl-auth .fl-main {
   font-size: 0.82rem;
 }
 
+.fl-exercise-list {
+  display: grid;
+  gap: 8px;
+}
+
+.fl-exercise-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.fl-exercise-row .errorlist {
+  grid-column: 1 / -1;
+}
+
+.fl-exercise-row .fl-btn {
+  padding: 13px 16px;
+}
+
+[data-exercise-formset] > [data-add-exercise] {
+  margin-top: 8px;
+}
+
+.fl-exercise-table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+}
+
+.fl-exercise-table th,
+.fl-exercise-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--fl-line);
+  text-align: left;
+}
+
+.fl-exercise-table th {
+  color: var(--fl-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.fl-exercise-table th:not(:first-child),
+.fl-exercise-table td:not(:first-child) {
+  width: 80px;
+}
+
+@media (max-width: 640px) {
+  .fl-exercise-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .fl-exercise-row > :first-child,
+  .fl-exercise-row .fl-btn {
+    grid-column: 1 / -1;
+  }
+}
+
 .fl-form [data-preview] {
   display: none;
 }

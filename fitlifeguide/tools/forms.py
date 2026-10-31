@@ -1,4 +1,23 @@
 from django import forms
+from django.forms import formset_factory
+
+
+class ExerciseForm(forms.Form):
+    name = forms.CharField(widget=forms.TextInput(attrs={
+        'placeholder': 'Exercise name',
+        'aria-label': 'Exercise name',
+    }))
+    sets = forms.IntegerField(required=False, min_value=0, widget=forms.NumberInput(attrs={
+        'placeholder': 'Sets',
+        'aria-label': 'Sets',
+    }))
+    reps = forms.CharField(required=False, widget=forms.TextInput(attrs={
+        'placeholder': 'Reps',
+        'aria-label': 'Reps',
+    }))
+
+
+ExerciseFormSet = formset_factory(ExerciseForm, extra=1, can_delete=True)
 
 
 class MealPlannerForm(forms.Form):
@@ -21,10 +40,6 @@ class WorkoutPlanForm(forms.Form):
     }))
     title = forms.CharField(widget=forms.TextInput(attrs={
         'placeholder': 'Enter workout title',
-    }))
-    exercises = forms.CharField(required=False, widget=forms.Textarea(attrs={
-        'rows': 4,
-        'placeholder': 'List your exercises here (e.g., 3x10 Push-ups, 4x12 Squats...)',
     }))
     duration_minutes = forms.IntegerField(required=False, min_value=0, widget=forms.NumberInput(attrs={
         'placeholder': 'Duration in minutes',

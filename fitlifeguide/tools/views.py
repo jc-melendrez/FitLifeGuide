@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from fitlifeguide.domain import MEAL_STATUS, MEAL_TYPES, WEEKDAYS, label_for
 
 from .activity import WEEKLY_WORKOUT_GOAL, get_activity_stats
-from .forms import MealPlannerForm, WorkoutPlanForm
+from .forms import ExerciseFormSet, MealPlannerForm, WorkoutPlanForm
 from .plan import PLAN_VIEWS, copy_previous_week, get_plan_context, parse_week
 from .repositories import (
     MEAL_ORDER,
@@ -31,6 +31,23 @@ from .repositories import (
     update_meal,
     update_workout,
 )
+
+
+def _exercise_items(formset):
+    items = []
+    for form in formset:
+        data = getattr(form, 'cleaned_data', None)
+        if not data or data.get('DELETE'):
+            continue
+        name = (data.get('name') or '').strip()
+        if not name:
+            continue
+        items.append({
+            'name': name,
+            'sets': data.get('sets'),
+            'reps': (data.get('reps') or '').strip(),
+        })
+    return items
 
 
 def _next_url(request):
@@ -213,12 +230,13 @@ def add_workout(request):
     next_url = _next_url(request)
     if request.method == 'POST':
         form = WorkoutPlanForm(request.POST)
-        if form.is_valid():
+        exercise_formset = ExerciseFormSet(request.POST, prefix='exercises')
+        if form.is_valid() and exercise_formset.is_valid():
             create_workout(
                 request.user,
                 form.cleaned_data['date'],
                 form.cleaned_data['title'],
-                form.cleaned_data.get('exercises', ''),
+                _exercise_items(exercise_formset),
                 form.cleaned_data.get('duration_minutes'),
                 form.cleaned_data.get('goal', ''),
                 form.cleaned_data.get('notes', ''),
@@ -227,9 +245,11 @@ def add_workout(request):
             return redirect(next_url or 'tools:plan')
     else:
         form = WorkoutPlanForm(initial={'date': selected_date})
+        exercise_formset = ExerciseFormSet(prefix='exercises')
 
     return render(request, 'tools/add_workout.html', {
         'form': form,
+        'exercise_formset': exercise_formset,
         'selected_date': selected_date,
         'next': next_url or '',
     })
@@ -244,12 +264,13 @@ def edit_workout(request, workout_id):
 
     if request.method == 'POST':
         form = WorkoutPlanForm(request.POST)
-        if form.is_valid():
+        exercise_formset = ExerciseFormSet(request.POST, prefix='exercises')
+        if form.is_valid() and exercise_formset.is_valid():
             update_workout(
                 workout,
                 form.cleaned_data['date'],
                 form.cleaned_data['title'],
-                form.cleaned_data.get('exercises', ''),
+                _exercise_items(exercise_formset),
                 form.cleaned_data.get('duration_minutes'),
                 form.cleaned_data.get('goal', ''),
                 form.cleaned_data.get('notes', ''),
@@ -260,14 +281,15 @@ def edit_workout(request, workout_id):
         form = WorkoutPlanForm(initial={
             'date': workout.date,
             'title': workout.title,
-            'exercises': workout.exercises,
             'duration_minutes': workout.duration_minutes,
             'goal': workout.goal,
             'notes': workout.notes,
         })
+        exercise_formset = ExerciseFormSet(initial=workout.exercises, prefix='exercises')
 
     return render(request, 'tools/edit_workout.html', {
         'form': form,
+        'exercise_formset': exercise_formset,
         'workout': workout,
         'next': next_url or '',
     })

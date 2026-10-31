@@ -8,6 +8,7 @@ from fitlifeguide.domain import (
     Author,
     Meal,
     Workout,
+    normalize_exercises,
     parse_date,
 )
 from fitlifeguide.firestore import count_query, get_db
@@ -47,7 +48,7 @@ def _workout_from_doc(doc):
         week_start=parse_date(data.get('week_start')),
         day_of_week=data.get('day_of_week', ''),
         title=data.get('title', ''),
-        exercises=data.get('exercises', ''),
+        exercises=normalize_exercises(data.get('exercises')),
         duration_minutes=data.get('duration_minutes'),
         goal=data.get('goal', ''),
         status=data.get('status', 'planned'),
@@ -174,7 +175,7 @@ def set_meal_status(meal_id, status):
     get_db().collection('meals').document(meal_id).update({'status': status, 'updated_at': _now()})
 
 
-def add_workout(user, workout_date, title, exercises='', duration_minutes=None, goal='', notes=''):
+def add_workout(user, workout_date, title, exercises=None, duration_minutes=None, goal='', notes=''):
     db = get_db()
     doc_ref = db.collection('workouts').document()
     doc_ref.set({
@@ -185,7 +186,7 @@ def add_workout(user, workout_date, title, exercises='', duration_minutes=None, 
         'week_start': (workout_date - timedelta(days=workout_date.weekday())).isoformat(),
         'day_of_week': _day_code(workout_date),
         'title': title,
-        'exercises': exercises,
+        'exercises': normalize_exercises(exercises),
         'duration_minutes': duration_minutes,
         'goal': goal,
         'status': 'planned',
@@ -196,14 +197,14 @@ def add_workout(user, workout_date, title, exercises='', duration_minutes=None, 
     return _workout_from_doc(doc_ref.get())
 
 
-def update_workout(workout, workout_date, title, exercises='', duration_minutes=None, goal='', notes=''):
+def update_workout(workout, workout_date, title, exercises=None, duration_minutes=None, goal='', notes=''):
     doc_ref = get_db().collection('workouts').document(workout.id)
     doc_ref.update({
         'date': workout_date.isoformat(),
         'week_start': (workout_date - timedelta(days=workout_date.weekday())).isoformat(),
         'day_of_week': _day_code(workout_date),
         'title': title,
-        'exercises': exercises,
+        'exercises': normalize_exercises(exercises),
         'duration_minutes': duration_minutes,
         'goal': goal,
         'notes': notes,
