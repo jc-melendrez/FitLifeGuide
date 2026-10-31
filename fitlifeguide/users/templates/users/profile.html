@@ -72,10 +72,8 @@
             </div>
             <span class="fl-pill">{{ workout.duration_minutes|default:"-" }} min</span>
         </a>
-            <span class="fl-pill">{{ workout.duration_minutes|default:"-" }} min</span>
-        </div>
         {% empty %}
-        <p class="fl-muted fl-activity-empty">No workouts yet. <a href="{% url 'tools:workout_hub' %}">Plan one</a>.</p>
+        <p class="fl-muted fl-activity-empty">No workouts yet. <a href="{% url 'tools:plan' %}">Plan one</a>.</p>
         {% endfor %}
     </div>
 

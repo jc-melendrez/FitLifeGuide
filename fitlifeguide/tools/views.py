@@ -19,7 +19,6 @@ from .repositories import (
     add_meal as create_meal,
     add_workout as create_workout,
     community_meals,
-    community_workouts,
     delete_meal as remove_meal,
     delete_workout as remove_workout,
     get_meal,
@@ -204,28 +203,6 @@ def update_meal_status(request, meal_id):
 
 
 @login_required
-def workout_hub(request):
-    week_start = _week_start_from_request(request)
-    week_end = week_start + timedelta(days=6)
-    user_workouts = list_workouts_between(request.user.id, week_start, week_end)
-    workouts_by_date = {workout.date: workout for workout in user_workouts}
-    week_plan = {}
-    for index, (_, day_name) in enumerate(WEEKDAYS):
-        current_date = week_start + timedelta(days=index)
-        week_plan[day_name] = {
-            'date': current_date,
-            'workout': workouts_by_date.get(current_date),
-        }
-
-    return render(request, 'tools/workout_hub.html', {
-        'week_plan': week_plan,
-        'other_workouts': community_workouts(request.user.id, limit=3),
-        'week_start': week_start,
-        'week_end': week_end,
-    })
-
-
-@login_required
 def add_workout(request):
     date_str = request.GET.get('date')
     try:
@@ -247,7 +224,7 @@ def add_workout(request):
                 form.cleaned_data.get('notes', ''),
             )
             messages.success(request, 'Workout added successfully!')
-            return redirect(next_url or 'tools:workout_hub')
+            return redirect(next_url or 'tools:plan')
     else:
         form = WorkoutPlanForm(initial={'date': selected_date})
 
@@ -278,7 +255,7 @@ def edit_workout(request, workout_id):
                 form.cleaned_data.get('notes', ''),
             )
             messages.success(request, 'Workout updated successfully!')
-            return redirect(next_url or 'tools:workout_hub')
+            return redirect(next_url or 'tools:plan')
     else:
         form = WorkoutPlanForm(initial={
             'date': workout.date,
@@ -304,7 +281,7 @@ def delete_workout(request, workout_id):
     if request.method == 'POST':
         remove_workout(workout.id)
         messages.success(request, 'Workout deleted successfully!')
-    return redirect('tools:workout_hub')
+    return redirect('tools:plan')
 
 
 @login_required
@@ -319,7 +296,7 @@ def update_workout_status(request, workout_id):
             messages.success(request, f'Workout marked as {status}!')
             if status == 'completed':
                 return redirect('tools:workout_complete', workout_id=workout.id)
-    return redirect('tools:workout_hub')
+    return redirect('tools:plan')
 
 
 @login_required

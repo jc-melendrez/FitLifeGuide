@@ -9,6 +9,13 @@ from tools.plan import get_plan_context, parse_week
 from tools.repositories import MEAL_ORDER
 
 
+class WorkoutHubRedirectTests(SimpleTestCase):
+    def test_workout_hub_redirects_to_plan(self):
+        response = self.client.get('/workout-hub/')
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.url, '/plan/')
+
+
 class WorkoutDetailUrlTests(SimpleTestCase):
     def test_workout_detail_url_resolves(self):
         self.assertEqual(reverse('tools:workout_detail', args=['abc']), '/workout/abc/')

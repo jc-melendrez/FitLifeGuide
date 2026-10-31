@@ -12,7 +12,7 @@
             &middot; <span class="fl-pill{% if workout.status == 'completed' %} fl-pill-on{% endif %}">{{ workout.get_status_display }}</span>
         </p>
     </div>
-    <a class="fl-pill" href="{% url 'tools:workout_hub' %}">Back to workouts</a>
+    <a class="fl-pill" href="{% url 'tools:plan' %}?week={{ workout.week_start|date:'Y-m-d' }}&amp;view=workouts">Back to workouts</a>
 </div>
 
 <section class="fl-card">

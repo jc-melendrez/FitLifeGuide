@@ -7,7 +7,7 @@
         <div class="fl-label fl-lime">Workout</div>
         <h1 class="fl-h fl-page-title">Plan a <span class="fl-lime">workout</span></h1>
     </div>
-    <a class="fl-pill" href="{% if next %}{{ next }}{% else %}{% url 'tools:workout_hub' %}{% endif %}">Cancel</a>
+    <a class="fl-pill" href="{% if next %}{{ next }}{% else %}{% url 'tools:plan' %}{% endif %}">Cancel</a>
 </div>
 
 <form method="post" class="fl-card fl-form" novalidate>
@@ -58,7 +58,7 @@
 
     <div class="fl-form-actions">
         <button type="submit" class="fl-btn">Save workout</button>
-        <a class="fl-btn fl-btn-secondary" href="{% if next %}{{ next }}{% else %}{% url 'tools:workout_hub' %}{% endif %}">Cancel</a>
+        <a class="fl-btn fl-btn-secondary" href="{% if next %}{{ next }}{% else %}{% url 'tools:plan' %}{% endif %}">Cancel</a>
     </div>
 </form>
 {% endblock %}
