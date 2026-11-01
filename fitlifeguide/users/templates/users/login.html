@@ -1,189 +1,74 @@
 {% extends 'users/auth_base.html' %}
+{% load static %}
 {% block title %}Log in - FitLifeGuide{% endblock %}
 
 {% block content %}
-<div class="fl-auth-grid">
-    <section class="fl-card fl-auth-card">
-        {% if otp_pending %}
-        <div class="fl-label fl-lime">Step 2 of 2</div>
-        <h1 class="fl-h fl-auth-title">Password <span class="fl-lime">accepted</span></h1>
-        <p class="fl-muted">We sent a 6-digit code to your email. Enter it on the right to finish logging in.</p>
-        <p class="fl-muted"><a href="{% url 'login' %}?restart=1">Use a different account</a></p>
-        {% else %}
-        <div class="fl-label fl-lime">Welcome back</div>
-        <h1 class="fl-h fl-auth-title">Log <span class="fl-lime">in</span></h1>
-        <p class="fl-muted">Pick up where you left off.</p>
+{{ firebase_config|json_script:"firebase-config" }}
+<div id="auth-app"
+     data-page="login"
+     data-send-url="{{ send_link_url }}"
+     data-callback-url="{{ callback_url }}"
+     data-complete-url="{{ complete_profile_url }}"
+     data-home-url="{{ home_url }}">
+    <div class="fl-auth-grid">
+        <section class="fl-card fl-auth-card">
+            <div class="fl-label fl-lime">Welcome back</div>
+            <h1 class="fl-h fl-auth-title">Log <span class="fl-lime">in</span></h1>
+            <p class="fl-muted">No password needed. Enter your email and we&rsquo;ll send you a secure sign-in link.</p>
 
-        {% if messages %}
-        <div class="fl-messages">
-            {% for message in messages %}
-            <div class="fl-alert {% if message.tags == 'error' %}fl-alert-error{% else %}fl-alert-info{% endif %}" role="alert">{{ message }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <form method="post" novalidate class="fl-form">
-            {% csrf_token %}
-
-            {% if form.non_field_errors %}
-            <div class="fl-alert fl-alert-error">
-                {{ form.non_field_errors }}
+            {% if not firebase_configured %}
+            <div class="fl-alert fl-alert-error" role="alert">
+                Firebase Auth is not configured yet. Add FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, and FIREBASE_APP_ID to your .env file.
             </div>
             {% endif %}
 
-            <div class="fl-field">
-                <label class="fl-label" for="{{ form.username.id_for_label }}">Username</label>
-                {{ form.username }}
-                {{ form.username.errors }}
+            {% if messages %}
+            <div class="fl-messages">
+                {% for message in messages %}
+                <div class="fl-alert {% if message.tags == 'error' %}fl-alert-error{% else %}fl-alert-info{% endif %}" role="alert">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div id="auth-error" class="fl-alert fl-alert-error" role="alert" hidden></div>
+
+            <noscript>
+                <div class="fl-alert fl-alert-error" role="alert">JavaScript is required for email sign-in.</div>
+            </noscript>
+
+            <form method="post" novalidate class="fl-form" id="email-link-form" onsubmit="return false">
+                {% csrf_token %}
+                <div class="fl-field">
+                    <label class="fl-label" for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                    {{ form.email.errors }}
+                </div>
+                <button type="submit" class="fl-btn fl-btn-block" id="send-link-button" data-button-label="Email me a sign-in link"{% if not firebase_configured %} disabled{% endif %}>
+                    Email me a sign-in link
+                </button>
+            </form>
+
+            <div id="link-sent" class="fl-card fl-card-highlight" hidden>
+                <div class="fl-label fl-lime">Check your inbox</div>
+                <h2 class="fl-h">Link sent</h2>
+                <p class="fl-muted">We sent a sign-in link to <strong id="sent-email"></strong>.</p>
+                <p class="fl-muted">Open it on this device to finish logging in. It can take a minute; check spam if it does not arrive.</p>
+                <button type="button" class="fl-btn fl-btn-secondary" id="send-again">Use a different email</button>
             </div>
 
-            <div class="fl-field">
-                <label class="fl-label" for="{{ form.password.id_for_label }}">Password</label>
-                {{ form.password }}
-                {{ form.password.errors }}
-            </div>
+            <p class="fl-muted">New here? <a href="{% url 'register' %}">Create an account</a></p>
+        </section>
 
-            <button type="submit" class="fl-btn fl-btn-block">Continue</button>
-        </form>
-
-        <p class="fl-muted">New here? <a href="{% url 'register' %}">Create an account</a></p>
-        {% endif %}
-    </section>
-
-    <aside class="fl-card fl-card-highlight fl-auth-aside">
-        {% if otp_pending %}
-        <div class="fl-label fl-lime">Step 2 of 2</div>
-        <h2 class="fl-h">Enter your code</h2>
-        <p class="fl-muted">Enter the 6-digit code sent to your email.</p>
-
-        <form method="post" action="{% url 'login' %}" novalidate class="fl-form" id="otp-form">
-            {% csrf_token %}
-            <input type="hidden" name="step" value="otp">
-            <input type="hidden" name="otp" id="otp-value" value="">
-
-            <div class="fl-otp-inputs" role="group" aria-label="6-digit code">
-                <input type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1" autofocus>
-                <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 2">
-                <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 3">
-                <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 4">
-                <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 5">
-                <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 6">
-            </div>
-            {{ otp_form.otp.errors }}
-
-            <button type="submit" class="fl-btn fl-btn-block">Verify and log in</button>
-        </form>
-
-        <div class="fl-otp-footer">
-            <p class="fl-muted">Expires in <span id="timer" class="fl-lime">5:00</span></p>
-            <button type="button" id="resendBtn" class="fl-btn fl-btn-secondary" onclick="resendOTP()">Resend code</button>
-        </div>
-        <p id="resend-status" class="fl-muted fl-resend-status" role="status"></p>
-        {% else %}
-        <div class="fl-label fl-lime">Step 2 of 2</div>
-        <h2 class="fl-h">Enter your code</h2>
-        <p class="fl-muted">After your password is accepted, we send a 6-digit code to your email. Enter it here to finish logging in.</p>
-        <div class="fl-otp-demo" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <div class="fl-label fl-lime">Expires in 5:00</div>
-        {% endif %}
-    </aside>
+        <aside class="fl-card fl-card-highlight fl-auth-aside">
+            <div class="fl-label fl-lime">Passwordless</div>
+            <h2 class="fl-h">One link. That&rsquo;s it.</h2>
+            <p class="fl-muted">We email you a one-time link. Open it and you are in. No password to remember.</p>
+            <p class="fl-muted">New accounts finish a short profile after the link is verified.</p>
+        </aside>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-{% if otp_pending %}
-<script>
-    const otpBoxes = Array.from(document.querySelectorAll('.fl-otp-inputs input'));
-    const otpValue = document.getElementById('otp-value');
-
-    function syncOtp() {
-        otpValue.value = otpBoxes.map(function (box) { return box.value; }).join('');
-    }
-
-    otpBoxes.forEach(function (box, index) {
-        box.addEventListener('input', function () {
-            box.value = box.value.replace(/\D/g, '').slice(-1);
-            if (box.value && index < otpBoxes.length - 1) {
-                otpBoxes[index + 1].focus();
-            }
-            syncOtp();
-        });
-
-        box.addEventListener('keydown', function (event) {
-            if (event.key === 'Backspace' && !box.value && index > 0) {
-                otpBoxes[index - 1].focus();
-                otpBoxes[index - 1].value = '';
-                syncOtp();
-            }
-        });
-
-        box.addEventListener('paste', function (event) {
-            const digits = (event.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
-            if (!digits) return;
-            event.preventDefault();
-            digits.split('').forEach(function (digit, i) {
-                if (otpBoxes[i]) otpBoxes[i].value = digit;
-            });
-            syncOtp();
-            otpBoxes[Math.min(digits.length, otpBoxes.length - 1)].focus();
-        });
-    });
-
-    document.getElementById('otp-form').addEventListener('submit', syncOtp);
-
-    let timeLeft = 300;
-    let timerId = null;
-
-    function startTimer() {
-        timeLeft = 300;
-        if (timerId) clearInterval(timerId);
-
-        timerId = setInterval(function () {
-            timeLeft--;
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            document.getElementById('timer').textContent =
-                minutes + ':' + seconds.toString().padStart(2, '0');
-
-            if (timeLeft <= 0) {
-                clearInterval(timerId);
-                document.getElementById('timer').textContent = 'Expired';
-            }
-        }, 1000);
-    }
-
-    function resendOTP() {
-        const resendBtn = document.getElementById('resendBtn');
-        const status = document.getElementById('resend-status');
-        resendBtn.disabled = true;
-        status.textContent = 'Sending a new code...';
-
-        fetch('{% url "resend_otp" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            },
-        })
-        .then(function (response) {
-            if (!response.ok) throw new Error('Request failed');
-            return response.json();
-        })
-        .then(function () {
-            status.textContent = 'New code sent. Check your email.';
-            startTimer();
-            setTimeout(function () {
-                resendBtn.disabled = false;
-            }, 30000);
-        })
-        .catch(function () {
-            status.textContent = 'Could not send a new code. Please try again.';
-            resendBtn.disabled = false;
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', startTimer);
-</script>
-{% endif %}
+<script type="module" src="{% static 'users/firebase_auth.js' %}?v=5"></script>
 {% endblock %}

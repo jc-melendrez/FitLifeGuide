@@ -1,3 +1,9 @@
+/* JS show/hide relies on the hidden attribute; explicit display rules
+   (.fl-form, .fl-auth-aside, ...) must never override it. */
+[hidden] {
+  display: none !important;
+}
+
 .bg-img{
   background-image: url('home_bg.jpg');
   background-blend-mode: multiply;

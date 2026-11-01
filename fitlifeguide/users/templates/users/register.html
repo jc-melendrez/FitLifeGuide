@@ -1,76 +1,66 @@
 {% extends 'users/auth_base.html' %}
+{% load static %}
 {% block title %}Create account - FitLifeGuide{% endblock %}
 
 {% block content %}
-<form method="post" novalidate class="fl-form">
-    {% csrf_token %}
+{{ firebase_config|json_script:"firebase-config" }}
+<div id="auth-app"
+     data-page="login"
+     data-send-url="{{ send_link_url }}"
+     data-callback-url="{{ callback_url }}"
+     data-complete-url="{{ complete_profile_url }}"
+     data-home-url="{{ home_url }}">
     <div class="fl-auth-grid">
         <section class="fl-card fl-auth-card">
             <div class="fl-label fl-lime">Join FitLifeGuide</div>
             <h1 class="fl-h fl-auth-title">Start <span class="fl-lime">now</span></h1>
-            <p class="fl-muted">Build a weekly rhythm you can actually keep.</p>
+            <p class="fl-muted">Enter your email. We&rsquo;ll send a secure link, then you can set up your profile.</p>
 
-            {% if form.non_field_errors %}
-            <div class="fl-alert fl-alert-error">
-                {{ form.non_field_errors }}
+            {% if not firebase_configured %}
+            <div class="fl-alert fl-alert-error" role="alert">
+                Firebase Auth is not configured yet. Add FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, and FIREBASE_APP_ID to your .env file.
             </div>
             {% endif %}
 
-            <div class="fl-field">
-                <label class="fl-label" for="{{ form.username.id_for_label }}">Username</label>
-                {{ form.username }}
-                {{ form.username.errors }}
-            </div>
+            <div id="auth-error" class="fl-alert fl-alert-error" role="alert" hidden></div>
 
-            <div class="fl-field">
-                <label class="fl-label" for="{{ form.email.id_for_label }}">Email</label>
-                {{ form.email }}
-                {{ form.email.errors }}
-            </div>
+            <noscript>
+                <div class="fl-alert fl-alert-error" role="alert">JavaScript is required for email sign-in.</div>
+            </noscript>
 
-            <div class="fl-field">
-                <label class="fl-label" for="{{ form.password1.id_for_label }}">Password</label>
-                {{ form.password1 }}
-                {{ form.password1.errors }}
-            </div>
+            <form method="post" novalidate class="fl-form" id="email-link-form" onsubmit="return false">
+                {% csrf_token %}
+                <div class="fl-field">
+                    <label class="fl-label" for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                    {{ form.email.errors }}
+                </div>
+                <button type="submit" class="fl-btn fl-btn-block" id="send-link-button" data-button-label="Email me a sign-up link"{% if not firebase_configured %} disabled{% endif %}>
+                    Email me a sign-up link
+                </button>
+            </form>
 
-            <div class="fl-field">
-                <label class="fl-label" for="{{ form.password2.id_for_label }}">Confirm password</label>
-                {{ form.password2 }}
-                {{ form.password2.errors }}
+            <div id="link-sent" class="fl-card fl-card-highlight" hidden>
+                <div class="fl-label fl-lime">Check your inbox</div>
+                <h2 class="fl-h">Link sent</h2>
+                <p class="fl-muted">We sent a sign-up link to <strong id="sent-email"></strong>.</p>
+                <p class="fl-muted">Open it on this device. Next you&rsquo;ll choose a username, goal, and weekly schedule.</p>
+                <button type="button" class="fl-btn fl-btn-secondary" id="send-again">Use a different email</button>
             </div>
-
-            <button type="submit" class="fl-btn fl-btn-block">Create account</button>
 
             <p class="fl-muted">Already a member? <a href="{% url 'login' %}">Log in</a></p>
         </section>
 
         <aside class="fl-card fl-card-highlight fl-auth-aside">
-            <div class="fl-label fl-lime">Step 2 of 3</div>
-            <h2 class="fl-h">What&rsquo;s your goal?</h2>
-            <p class="fl-muted">Pick a goal and how many days you train. We&rsquo;ll build your first week around it.</p>
-
-            <div class="fl-status-pills">
-                {% for radio in form.goal %}
-                <label class="fl-status-pill" for="{{ radio.id_for_label }}">
-                    {{ radio.tag }}
-                    <span>{{ radio.choice_label }}</span>
-                </label>
-                {% endfor %}
-            </div>
-            {{ form.goal.errors }}
-
-            <div class="fl-label">Days per week</div>
-            <div class="fl-status-pills">
-                {% for radio in form.days_per_week %}
-                <label class="fl-status-pill" for="{{ radio.id_for_label }}">
-                    {{ radio.tag }}
-                    <span>{{ radio.choice_label }}</span>
-                </label>
-                {% endfor %}
-            </div>
-            {{ form.days_per_week.errors }}
+            <div class="fl-label fl-lime">Step 1 of 2</div>
+            <h2 class="fl-h">Verify your email</h2>
+            <p class="fl-muted">The link proves the email is yours. After that, you&rsquo;ll finish your profile before entering the app.</p>
+            <p class="fl-muted">No password. No six-digit code. Just the link.</p>
         </aside>
     </div>
-</form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'users/firebase_auth.js' %}?v=5"></script>
 {% endblock %}

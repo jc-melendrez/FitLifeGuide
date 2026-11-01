@@ -15,7 +15,7 @@ class _EmulatorCredential(credentials.Base):
         return AnonymousCredentials()
 
 
-def _initialize_app():
+def ensure_initialized():
     try:
         firebase_admin.get_app()
         return
@@ -46,7 +46,7 @@ def _initialize_app():
 def get_db():
     global _db
     if _db is None:
-        _initialize_app()
+        ensure_initialized()
         _db = firestore.client()
     return _db
 

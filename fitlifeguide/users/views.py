@@ -1,25 +1,45 @@
+import json
 import logging
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
+from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
+from django.core.validators import validate_email
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods, require_POST
+
+from firebase_admin import auth as firebase_auth
+from firebase_admin import exceptions as firebase_exceptions
 
 from fitlifeguide.domain import PROFILE_STATUS, label_for
+from fitlifeguide.firestore import ensure_initialized
 from fitlifeguide.storage import delete_image, upload_image
 
-from .forms import CustomLoginForm, OTPForm, ProfileUpdateForm, UserRegisterForm, UserUpdateForm
+from .firebase_auth import FirebaseAuthError, verify_firebase_id_token
+from .forms import (
+    CompleteProfileForm,
+    CustomLoginForm,
+    EmailLinkForm,
+    OTPForm,
+    ProfileUpdateForm,
+    UserUpdateForm,
+)
 from .repositories import (
     create_otp,
     delete_otp,
     get_otp,
     get_user,
+    get_user_by_email,
+    get_user_by_firebase_uid,
+    link_firebase_uid,
     set_status,
     update_profile,
     update_user,
@@ -64,20 +84,213 @@ def send_welcome_email(user):
         logger.exception('Welcome email failed for %s', user.email)
 
 
+def _firebase_config():
+    return {
+        'apiKey': settings.FIREBASE_API_KEY,
+        'authDomain': settings.FIREBASE_AUTH_DOMAIN,
+        'projectId': settings.FIREBASE_PROJECT_ID,
+        'appId': settings.FIREBASE_APP_ID,
+    }
+
+
+def _auth_context(request, **extra):
+    config = _firebase_config()
+    context = {
+        'firebase_config': config,
+        'firebase_configured': all(config.values()),
+        'send_link_url': reverse('send_sign_in_link'),
+        'callback_url': request.build_absolute_uri(reverse('firebase_callback')),
+        'complete_profile_url': request.build_absolute_uri(reverse('complete_profile')),
+        'home_url': reverse('home'),
+    }
+    context.update(extra)
+    return context
+
+
+def _json_payload(request):
+    try:
+        return json.loads(request.body.decode('utf-8') or '{}')
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+
+def _firebase_error(exc):
+    return JsonResponse(
+        {'status': 'error', 'message': str(exc)},
+        status=getattr(exc, 'status_code', 400),
+    )
+
+
+def _login_firebase_user(request, user):
+    user.backend = settings.AUTHENTICATION_BACKENDS[0]
+    auth_login(request, user)
+
+
+def _firebase_user_from_token(payload):
+    firebase_uid = payload['uid']
+    user = get_user_by_firebase_uid(firebase_uid)
+    if user:
+        return user
+
+    user = get_user_by_email(payload['email'])
+    if user:
+        return link_firebase_uid(user.id, firebase_uid)
+    return None
+
+
+@never_cache
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+    return render(
+        request,
+        'users/login.html',
+        _auth_context(request, form=EmailLinkForm()),
+    )
+
+
+@never_cache
 def register(request):
     if request.user.is_authenticated:
         return redirect('home')
+    return render(
+        request,
+        'users/register.html',
+        _auth_context(request, form=EmailLinkForm(), signup=True),
+    )
 
-    if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            send_welcome_email(user)
-            messages.success(request, f'Account created for {user.username}! You can now log in.')
-            return redirect('login')
-    else:
-        form = UserRegisterForm()
-    return render(request, 'users/register.html', {'form': form})
+
+@never_cache
+@require_http_methods(['POST'])
+def send_sign_in_link(request):
+    payload = _json_payload(request)
+    if payload is None:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+    email = (payload.get('email') or '').strip()
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({'status': 'error', 'message': 'Enter a valid email address.'}, status=400)
+
+    ensure_initialized()
+    action_code_settings = firebase_auth.ActionCodeSettings(
+        url=request.build_absolute_uri(reverse('firebase_callback')),
+        handle_code_in_app=True,
+    )
+    try:
+        link = firebase_auth.generate_sign_in_with_email_link(email, action_code_settings)
+    except firebase_exceptions.FirebaseError as exc:
+        logger.warning('Sign-in link generation failed for %s: %s', email, exc)
+        return JsonResponse({
+            'status': 'error',
+            'message': str(exc) or 'Could not create the sign-in link. Please try again later.',
+        }, status=502)
+
+    html_content = render_to_string('users/magic_link_email.html', {'sign_in_url': link, 'email': email})
+    text_content = (
+        'Tap the link below to sign in to FitLifeGuide. '
+        f'It works only once and is meant for {email}.\n\n{link}\n\n'
+        'If you did not request this email, you can safely ignore it.'
+    )
+    msg = EmailMultiAlternatives(
+        'Your FitLifeGuide sign-in link',
+        text_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [email],
+    )
+    msg.attach_alternative(html_content, 'text/html')
+    try:
+        msg.send()
+    except Exception:
+        logger.exception('Sign-in link email failed for %s', email)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Could not send the email. Please try again in a moment.',
+        }, status=502)
+
+    return JsonResponse({'status': 'ok'})
+
+
+@never_cache
+@require_http_methods(['GET', 'POST'])
+def firebase_callback(request):
+    if request.method == 'GET':
+        return render(
+            request,
+            'users/firebase_callback.html',
+            _auth_context(request, form=CompleteProfileForm()),
+        )
+
+    payload = _json_payload(request)
+    if payload is None:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+    try:
+        verified = verify_firebase_id_token(payload.get('idToken'))
+        user = _firebase_user_from_token(verified)
+    except FirebaseAuthError as exc:
+        return _firebase_error(exc)
+    except ValueError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
+
+    if not user:
+        return JsonResponse({
+            'status': 'needs_profile',
+            'email': verified['email'],
+        })
+
+    if not user.is_active:
+        return JsonResponse(
+            {'status': 'error', 'message': 'This account is inactive.'},
+            status=403,
+        )
+
+    _login_firebase_user(request, user)
+    return JsonResponse({'status': 'ok', 'redirect': reverse('home')})
+
+
+@require_POST
+def complete_profile(request):
+    payload = _json_payload(request)
+    if payload is None:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+    try:
+        verified = verify_firebase_id_token(payload.get('idToken'))
+        existing = get_user_by_firebase_uid(verified['uid'])
+        if not existing:
+            existing = get_user_by_email(verified['email'])
+            if existing:
+                existing = link_firebase_uid(existing.id, verified['uid'])
+    except FirebaseAuthError as exc:
+        return _firebase_error(exc)
+    except ValueError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
+
+    if existing:
+        if not existing.is_active:
+            return JsonResponse(
+                {'status': 'error', 'message': 'This account is inactive.'},
+                status=403,
+            )
+        _login_firebase_user(request, existing)
+        return JsonResponse({'status': 'ok', 'redirect': reverse('home')})
+
+    form = CompleteProfileForm(payload)
+    if not form.is_valid():
+        return JsonResponse({
+            'status': 'invalid',
+            'errors': form.errors.get_json_data(),
+        }, status=400)
+
+    try:
+        user = form.save(verified['uid'], verified['email'])
+    except ValueError as exc:
+        return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
+
+    _login_firebase_user(request, user)
+    return JsonResponse({'status': 'ok', 'redirect': reverse('home')})
 
 
 @login_required
@@ -212,7 +425,7 @@ class CustomLoginView(LoginView):
                 form.add_error('otp', 'Invalid OTP. Please try again.')
             else:
                 user.backend = settings.AUTHENTICATION_BACKENDS[0]
-                login(request, user)
+                auth_login(request, user)
                 request.session.pop('pre_2fa_user_id', None)
                 delete_otp(user.id)
                 return redirect('home')
@@ -242,7 +455,7 @@ def verify_otp(request):
                 form.add_error('otp', 'Invalid OTP. Please try again.')
             else:
                 user.backend = settings.AUTHENTICATION_BACKENDS[0]
-                login(request, user)
+                auth_login(request, user)
                 request.session.pop('pre_2fa_user_id', None)
                 delete_otp(user.id)
                 return redirect('home')

@@ -49,6 +49,9 @@ def get_user(uid):
         profile=profile,
         password_hash=data.get('password_hash', ''),
         is_active=data.get('is_active', True),
+        firebase_uid=data.get('firebase_uid', ''),
+        auth_provider=data.get('auth_provider', ''),
+        email_verified=data.get('email_verified', False),
     )
 
 
@@ -75,23 +78,58 @@ def get_user_by_email(email):
     return None
 
 
-def create_user(username, email, password, goal='', days_per_week=None):
+def get_user_by_firebase_uid(firebase_uid):
+    if not firebase_uid:
+        return None
+    db = get_db()
+    snap = db.collection('firebase_uids').document(str(firebase_uid)).get()
+    if snap.exists:
+        return get_user((snap.to_dict() or {}).get('uid'))
+    matches = (
+        db.collection('users')
+        .where('firebase_uid', '==', str(firebase_uid))
+        .limit(1)
+        .stream()
+    )
+    for match in matches:
+        return get_user(match.id)
+    return None
+
+
+def create_user(
+    username,
+    email,
+    password=None,
+    goal='',
+    days_per_week=None,
+    firebase_uid='',
+    profile_data=None,
+):
     username = username.strip()
     email = email.strip()
     username_lower = username.lower()
     email_lower = email.lower()
+    firebase_uid = str(firebase_uid or '').strip()
     if not username or not email:
         raise ValueError('Username and email are required.')
     if get_user_by_username(username):
         raise ValueError('This username is already taken.')
     if get_user_by_email(email):
         raise ValueError('An account with this email already exists.')
+    if firebase_uid and get_user_by_firebase_uid(firebase_uid):
+        raise ValueError('This sign-in is already linked to another account.')
 
+    profile_data = profile_data or {}
     db = get_db()
     user_ref = db.collection('users').document()
     uid = user_ref.id
     username_ref = db.collection('usernames').document(username_lower)
     email_ref = db.collection('emails').document(email_lower)
+    firebase_ref = (
+        db.collection('firebase_uids').document(firebase_uid)
+        if firebase_uid
+        else None
+    )
     now = timezone.now()
 
     @transactional
@@ -100,19 +138,27 @@ def create_user(username, email, password, goal='', days_per_week=None):
             raise ValueError('This username is already taken.')
         if email_ref.get(transaction=transaction).exists:
             raise ValueError('An account with this email already exists.')
-        transaction.set(user_ref, {
+        if firebase_ref and firebase_ref.get(transaction=transaction).exists:
+            raise ValueError('This sign-in is already linked to another account.')
+
+        user_payload = {
             'username': username,
             'username_lower': username_lower,
             'email': email,
             'email_lower': email_lower,
-            'password_hash': make_password(password),
+            'password_hash': make_password(password) if password else '',
             'date_joined': now,
             'is_active': True,
-        })
+            'auth_provider': 'firebase' if firebase_uid else 'password',
+            'email_verified': bool(firebase_uid),
+        }
+        if firebase_uid:
+            user_payload['firebase_uid'] = firebase_uid
+        transaction.set(user_ref, user_payload)
         transaction.set(db.collection('profiles').document(uid), {
-            'location': '',
-            'bio': '',
-            'birth_date': None,
+            'location': profile_data.get('location', ''),
+            'bio': profile_data.get('bio', ''),
+            'birth_date': to_iso_date(profile_data.get('birth_date')),
             'avatar_url': '',
             'cover_url': '',
             'status': 'rest',
@@ -122,9 +168,42 @@ def create_user(username, email, password, goal='', days_per_week=None):
         })
         transaction.set(username_ref, {'uid': uid})
         transaction.set(email_ref, {'uid': uid})
+        if firebase_ref:
+            transaction.set(firebase_ref, {'uid': uid})
 
     create(db.transaction())
     return get_user(uid)
+
+
+def link_firebase_uid(user_id, firebase_uid):
+    firebase_uid = str(firebase_uid or '').strip()
+    if not firebase_uid:
+        raise ValueError('A Firebase sign-in is required.')
+
+    db = get_db()
+    user_ref = db.collection('users').document(str(user_id))
+    firebase_ref = db.collection('firebase_uids').document(firebase_uid)
+
+    @transactional
+    def link(transaction):
+        user_snap = user_ref.get(transaction=transaction)
+        if not user_snap.exists:
+            raise ValueError('Account not found.')
+        firebase_snap = firebase_ref.get(transaction=transaction)
+        if firebase_snap.exists and (firebase_snap.to_dict() or {}).get('uid') != str(user_id):
+            raise ValueError('This sign-in is already linked to another account.')
+        current_uid = (user_snap.to_dict() or {}).get('firebase_uid', '')
+        if current_uid and current_uid != firebase_uid:
+            raise ValueError('This account is already linked to another sign-in.')
+        transaction.update(user_ref, {
+            'firebase_uid': firebase_uid,
+            'auth_provider': 'firebase',
+            'email_verified': True,
+        })
+        transaction.set(firebase_ref, {'uid': str(user_id)})
+
+    link(db.transaction())
+    return get_user(str(user_id))
 
 
 def update_user(user, username, email):

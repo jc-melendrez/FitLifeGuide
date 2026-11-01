@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1d20;
+            color: #ffffff;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(198, 255, 61, 0.3);
+        }
+        .brand {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 0;
+            background: -webkit-linear-gradient(45deg,#fda3ea,#b8c9ff,#c6fffa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            position: relative;
+        }
+        /* Fallback for email clients that don't support gradients */
+        @media not all {
+            .brand {
+                background: none;
+                -webkit-text-fill-color: #b8c9ff;
+                color: #b8c9ff;
+            }
+        }
+        .content {
+            padding: 30px 0;
+            text-align: center;
+        }
+        .link-box {
+            background-color: #2c3034;
+            border: 1px solid rgba(198, 255, 61, 0.3);
+            border-radius: 10px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .sign-in-button {
+            display: inline-block;
+            background-color: #c6ff3d;
+            color: #0c0c0c;
+            font-weight: bold;
+            font-size: 18px;
+            text-decoration: none;
+            padding: 14px 36px;
+            border-radius: 999px;
+        }
+        .fallback-url {
+            word-break: break-all;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 16px;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .lightning-icon {
+            color: #c6fffa;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="brand">
+                <span class="lightning-icon">⚡</span>FitLifeGuide
+            </h1>
+        </div>
+        <div class="content">
+            <h2>Sign in to FitLifeGuide</h2>
+            <p>Tap the button below to continue. The link works only once.</p>
+
+            <div class="link-box">
+                <a class="sign-in-button" href="{{ sign_in_url }}">Sign in</a>
+                <p class="fallback-url">Button not working? Copy this link into your browser:<br>{{ sign_in_url }}</p>
+            </div>
+
+            <p>If you didn't request this email, you can safely ignore it.</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message, please do not reply to this email.</p>
+            <p>&copy; {% now "Y" %} FitLifeGuide. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

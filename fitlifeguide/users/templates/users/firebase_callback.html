@@ -1,0 +1,98 @@
+{% extends 'users/auth_base.html' %}
+{% load static %}
+{% block title %}Sign in - FitLifeGuide{% endblock %}
+
+{% block content %}
+{{ firebase_config|json_script:"firebase-config" }}
+<div id="auth-app"
+     data-page="callback"
+     data-callback-url="{{ callback_url }}"
+     data-complete-url="{{ complete_profile_url }}"
+     data-home-url="{{ home_url }}">
+    <div class="fl-auth-grid">
+        <section class="fl-card fl-auth-card">
+            <div class="fl-label fl-lime">Secure sign-in</div>
+            <h1 class="fl-h fl-auth-title">One <span class="fl-lime">moment</span></h1>
+
+            <div id="auth-status" class="fl-muted" role="status">Verifying your sign-in link...</div>
+            <div id="auth-error" class="fl-alert fl-alert-error" role="alert" hidden></div>
+
+            <form id="confirm-email-form" class="fl-form" onsubmit="return false" hidden>
+                <p class="fl-muted">Enter the email address that received the link to continue.</p>
+                <div class="fl-field">
+                    <label class="fl-label" for="confirm-email">Email</label>
+                    <input class="form-control" type="email" id="confirm-email" name="email" autocomplete="email" required>
+                </div>
+                <button type="submit" class="fl-btn fl-btn-block">Continue</button>
+            </form>
+
+            <p class="fl-muted" id="back-to-login" hidden><a href="{% url 'login' %}">Request a new link</a></p>
+        </section>
+
+        <aside class="fl-card fl-card-highlight fl-auth-aside" id="profile-panel" hidden>
+            <div class="fl-label fl-lime">Step 2 of 2</div>
+            <h2 class="fl-h">Finish your profile</h2>
+            <p class="fl-muted">Signed in as <strong id="profile-email"></strong>. Pick a username and your starting plan.</p>
+
+            <form id="complete-profile-form" class="fl-form" onsubmit="return false" novalidate>
+                {% csrf_token %}
+                <div id="profile-error" class="fl-alert fl-alert-error" role="alert" hidden></div>
+
+                <div class="fl-field">
+                    <label class="fl-label" for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                    <div class="fl-error" data-error-for="username"></div>
+                </div>
+
+                <div class="fl-label">Your goal</div>
+                <div class="fl-status-pills">
+                    {% for radio in form.goal %}
+                    <label class="fl-status-pill" for="{{ radio.id_for_label }}">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <div class="fl-error" data-error-for="goal"></div>
+
+                <div class="fl-label">Days per week</div>
+                <div class="fl-status-pills">
+                    {% for radio in form.days_per_week %}
+                    <label class="fl-status-pill" for="{{ radio.id_for_label }}">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <div class="fl-error" data-error-for="days_per_week"></div>
+
+                <div class="fl-field">
+                    <label class="fl-label" for="{{ form.location.id_for_label }}">Location <span class="fl-muted">(optional)</span></label>
+                    {{ form.location }}
+                    <div class="fl-error" data-error-for="location"></div>
+                </div>
+
+                <div class="fl-field">
+                    <label class="fl-label" for="{{ form.bio.id_for_label }}">Bio <span class="fl-muted">(optional)</span></label>
+                    {{ form.bio }}
+                    <div class="fl-error" data-error-for="bio"></div>
+                </div>
+
+                <div class="fl-field">
+                    <label class="fl-label" for="{{ form.birth_date.id_for_label }}">Birth date <span class="fl-muted">(optional)</span></label>
+                    {{ form.birth_date }}
+                    <div class="fl-error" data-error-for="birth_date"></div>
+                </div>
+
+                <button type="submit" class="fl-btn fl-btn-block" id="complete-profile-button">
+                    Create my account
+                </button>
+            </form>
+        </aside>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'users/firebase_auth.js' %}?v=5"></script>
+{% endblock %}

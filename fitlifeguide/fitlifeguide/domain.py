@@ -135,6 +135,9 @@ class User:
     password_hash: str = field(default='', repr=False)
     is_active: bool = True
     backend: str = ''
+    firebase_uid: str = ''
+    auth_provider: str = ''
+    email_verified: bool = False
 
     @property
     def pk(self):

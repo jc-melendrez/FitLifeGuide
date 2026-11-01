@@ -73,6 +73,69 @@ class UserRegisterForm(forms.Form):
         )
 
 
+class EmailLinkForm(forms.Form):
+    email = forms.EmailField(widget=forms.EmailInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Email',
+        'autocomplete': 'email',
+    }))
+
+
+class CompleteProfileForm(forms.Form):
+    username = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Username',
+        'autofocus': True,
+        'autocomplete': 'username',
+    }))
+    goal = forms.ChoiceField(
+        choices=GOAL_CHOICES,
+        required=False,
+        initial='build_muscle',
+        widget=forms.RadioSelect,
+    )
+    days_per_week = forms.ChoiceField(
+        choices=DAY_CHOICES,
+        required=False,
+        initial='4',
+        widget=forms.RadioSelect,
+    )
+    location = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Location'}),
+    )
+    bio = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Short bio'}),
+    )
+    birth_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '').strip()
+        if get_user_by_username(username):
+            raise forms.ValidationError('This username is already taken.')
+        return username
+
+    def save(self, firebase_uid, email):
+        days = self.cleaned_data.get('days_per_week')
+        return create_user(
+            self.cleaned_data['username'],
+            email,
+            None,
+            goal=self.cleaned_data.get('goal', ''),
+            days_per_week=int(days) if days else None,
+            firebase_uid=firebase_uid,
+            profile_data={
+                'location': self.cleaned_data.get('location', ''),
+                'bio': self.cleaned_data.get('bio', ''),
+                'birth_date': self.cleaned_data.get('birth_date'),
+            },
+        )
+
+
 class UserUpdateForm(forms.Form):
     email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin">
     <meta name="description" content="FitLifeGuide account access">
     <title>{% block title %}FitLifeGuide{% endblock %}</title>
 
@@ -19,6 +20,27 @@
         <a class="fl-logo" href="{% url 'welcome' %}">Fit<span class="fl-lime">Life</span>Guide</a>
         {% block content %}{% endblock %}
     </main>
+    <script>
+        window.addEventListener('error', function (event) {
+            var box = document.getElementById('auth-error');
+            if (!box) return;
+            var target = event.target;
+            var detail = target && target.tagName === 'SCRIPT'
+                ? 'Failed to load ' + (target.src || 'the sign-in script') + '.'
+                : (event.message || 'The sign-in script failed to load.');
+            if (event.filename) detail += ' (' + event.filename + ')';
+            box.textContent = detail;
+            box.hidden = false;
+        }, true);
+
+        window.setTimeout(function () {
+            if (window.__firebaseAuthReady) return;
+            var box = document.getElementById('auth-error');
+            if (!box || box.textContent) return;
+            box.textContent = 'Could not load Firebase sign-in. Check your connection or allow scripts for this site, then reload.';
+            box.hidden = false;
+        }, 10000);
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
