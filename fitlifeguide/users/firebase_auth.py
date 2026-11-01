@@ -23,10 +23,6 @@ class UnverifiedFirebaseEmail(FirebaseAuthError):
     status_code = 403
 
 
-class UnsupportedFirebaseProvider(FirebaseAuthError):
-    status_code = 403
-
-
 def verify_firebase_id_token(token):
     if not token:
         raise MissingFirebaseToken('A Firebase sign-in token is required.')
@@ -41,9 +37,10 @@ def verify_firebase_id_token(token):
     if not decoded.get('email_verified'):
         raise UnverifiedFirebaseEmail('Please verify your email address first.')
 
-    provider = (decoded.get('firebase') or {}).get('sign_in_provider')
-    if provider != 'emailLink':
-        raise UnsupportedFirebaseProvider('Use the email sign-in link to continue.')
+    # No provider check: email-link completions mint sign_in_provider "password"
+    # (links belong to the password provider family). Email link is the only
+    # sign-in path in this app, so email_verified above is the proof the link
+    # was actually used.
 
     email = (decoded.get('email') or '').strip().lower()
     uid = (decoded.get('uid') or '').strip()

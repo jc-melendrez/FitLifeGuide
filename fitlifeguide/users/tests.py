@@ -80,13 +80,13 @@ class FirebaseAuthViewTests(SimpleTestCase):
         self.assertContains(response, 'data-callback-url="http://testserver/auth/firebase/"')
         self.assertContains(response, 'data-complete-url="http://testserver/auth/complete-profile/"')
         self.assertContains(response, 'onsubmit="return false"')
-        self.assertContains(response, 'firebase_auth.js?v=4')
+        self.assertContains(response, 'firebase_auth.js?v=5')
         self.assertIn('no-store', response['Cache-Control'])
 
     def test_register_page_is_not_cached(self):
         response = self.client.get(reverse('register'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'firebase_auth.js?v=4')
+        self.assertContains(response, 'firebase_auth.js?v=5')
         self.assertIn('no-store', response['Cache-Control'])
 
     def test_callback_page_renders_absolute_urls(self):
