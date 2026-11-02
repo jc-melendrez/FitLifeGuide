@@ -296,6 +296,67 @@ def delete_otp(uid):
     get_db().collection('otps').document(uid).delete()
 
 
+def create_link_request(rid, email):
+    get_db().collection('link_requests').document(rid).set({
+        'email': email.strip().lower(),
+        'status': 'pending',
+        'created_at': timezone.now(),
+    })
+
+
+def get_link_request(rid):
+    if not rid:
+        return None
+    snap = get_db().collection('link_requests').document(rid).get()
+    if not snap.exists:
+        return None
+    return snap.to_dict() or {}
+
+
+def grant_link_request(rid, uid, email):
+    if not rid:
+        return
+    db = get_db()
+    ref = db.collection('link_requests').document(rid)
+
+    @transactional
+    def grant(transaction):
+        snap = ref.get(transaction=transaction)
+        if not snap.exists:
+            return
+        if (snap.to_dict() or {}).get('status') != 'pending':
+            return
+        transaction.update(ref, {
+            'status': 'granted',
+            'uid': str(uid),
+            'email': email.strip().lower(),
+            'granted_at': timezone.now(),
+            'handoff_used': False,
+        })
+
+    grant(db.transaction())
+
+
+def consume_link_request(rid):
+    if not rid:
+        return None
+    db = get_db()
+    ref = db.collection('link_requests').document(rid)
+
+    @transactional
+    def consume(transaction):
+        snap = ref.get(transaction=transaction)
+        if not snap.exists:
+            return None
+        data = snap.to_dict() or {}
+        if data.get('status') != 'granted' or data.get('handoff_used'):
+            return None
+        transaction.update(ref, {'handoff_used': True})
+        return {'uid': data.get('uid'), 'email': data.get('email')}
+
+    return consume(db.transaction())
+
+
 def count_users():
     return count_query(get_db().collection('users'))
 

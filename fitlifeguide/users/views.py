@@ -1,11 +1,13 @@
 import json
 import logging
+import secrets
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
+from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
 from django.core.validators import validate_email
@@ -33,12 +35,16 @@ from .forms import (
     UserUpdateForm,
 )
 from .repositories import (
+    consume_link_request,
+    create_link_request,
     create_otp,
     delete_otp,
+    get_link_request,
     get_otp,
     get_user,
     get_user_by_email,
     get_user_by_firebase_uid,
+    grant_link_request,
     link_firebase_uid,
     set_status,
     update_profile,
@@ -99,6 +105,8 @@ def _auth_context(request, **extra):
         'firebase_config': config,
         'firebase_configured': all(config.values()),
         'send_link_url': reverse('send_sign_in_link'),
+        'link_status_url': reverse('link_status'),
+        'handoff_url': reverse('handoff_login'),
         'callback_url': request.build_absolute_uri(reverse('firebase_callback')),
         'complete_profile_url': request.build_absolute_uri(reverse('complete_profile')),
         'home_url': reverse('home'),
@@ -174,8 +182,11 @@ def send_sign_in_link(request):
         return JsonResponse({'status': 'error', 'message': 'Enter a valid email address.'}, status=400)
 
     ensure_initialized()
+    rid = secrets.token_urlsafe(32)
+    create_link_request(rid, email)
+    callback_url = request.build_absolute_uri(reverse('firebase_callback'))
     action_code_settings = firebase_auth.ActionCodeSettings(
-        url=request.build_absolute_uri(reverse('firebase_callback')),
+        url=f'{callback_url}?rid={rid}',
         handle_code_in_app=True,
     )
     try:
@@ -209,7 +220,7 @@ def send_sign_in_link(request):
             'message': 'Could not send the email. Please try again in a moment.',
         }, status=502)
 
-    return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'ok', 'rid': rid})
 
 
 @never_cache
@@ -234,6 +245,13 @@ def firebase_callback(request):
     except ValueError as exc:
         return JsonResponse({'status': 'error', 'message': str(exc)}, status=409)
 
+    rid = (payload.get('rid') or '').strip()
+    if rid:
+        try:
+            grant_link_request(rid, verified['uid'], verified['email'])
+        except Exception:
+            logger.warning('Link handoff grant failed for rid %s', rid, exc_info=True)
+
     if not user:
         return JsonResponse({
             'status': 'needs_profile',
@@ -245,6 +263,69 @@ def firebase_callback(request):
             {'status': 'error', 'message': 'This account is inactive.'},
             status=403,
         )
+
+    _login_firebase_user(request, user)
+    return JsonResponse({'status': 'ok', 'redirect': reverse('home')})
+
+
+HANDOFF_SALT = 'users.link_handoff'
+HANDOFF_MAX_AGE_SECONDS = 300
+
+
+@never_cache
+def link_status(request):
+    rid = (request.GET.get('rid') or '').strip()
+    record = get_link_request(rid)
+    if not record:
+        return JsonResponse({'status': 'invalid'})
+    if record.get('status') != 'granted':
+        return JsonResponse({'status': 'pending'})
+    token = signing.dumps({
+        'rid': rid,
+        'uid': record.get('uid', ''),
+        'email': record.get('email', ''),
+    }, salt=HANDOFF_SALT)
+    return JsonResponse({
+        'status': 'ready',
+        'token': token,
+        'email': record.get('email', ''),
+    })
+
+
+@never_cache
+@require_http_methods(['POST'])
+def handoff_login(request):
+    payload = _json_payload(request)
+    if payload is None:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+    try:
+        data = signing.loads(
+            payload.get('token') or '',
+            salt=HANDOFF_SALT,
+            max_age=HANDOFF_MAX_AGE_SECONDS,
+        )
+    except signing.BadSignature:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'This sign-in session has expired. Please request a new link.',
+        }, status=400)
+
+    consumed = consume_link_request(data.get('rid'))
+    if not consumed:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'This sign-in was already used. Please request a new link.',
+        }, status=400)
+
+    user = get_user_by_firebase_uid(consumed.get('uid'))
+    if not user:
+        return JsonResponse({
+            'status': 'needs_profile',
+            'email': consumed.get('email', ''),
+        })
+    if not user.is_active:
+        return JsonResponse({'status': 'error', 'message': 'This account is inactive.'}, status=403)
 
     _login_firebase_user(request, user)
     return JsonResponse({'status': 'ok', 'redirect': reverse('home')})

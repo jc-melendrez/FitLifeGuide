@@ -22,6 +22,7 @@ function initFirebaseAuth() {
 
         let auth = null;
         let currentUser = null;
+        let handoffPoller = null;
 
         const config = (() => {
             const node = document.getElementById('firebase-config');
@@ -157,6 +158,7 @@ function initFirebaseAuth() {
                         }
                         try {
                             localStorage.setItem('emailForSignIn', email);
+                            if (data.rid) localStorage.setItem('emailForSignInRid', data.rid);
                         } catch {
                             // The link can still be completed by confirming the email.
                         }
@@ -164,12 +166,71 @@ function initFirebaseAuth() {
                         form.hidden = true;
                         sentBox.hidden = false;
                         setStatus('Check your email for the sign-in link.');
+                        if (data.rid) {
+                            startHandoffPolling(data.rid);
+                        }
                     } catch (error) {
                         showError(friendlyFirebaseError(error));
                         button.disabled = false;
                         button.textContent = originalLabel;
                     }
                 });
+            }
+
+            function startHandoffPolling(rid) {
+                const statusUrl = root.dataset.linkStatusUrl;
+                const handoffUrl = root.dataset.handoffUrl;
+                if (!statusUrl || !handoffUrl) return;
+                if (handoffPoller) clearInterval(handoffPoller);
+
+                const startedAt = Date.now();
+                handoffPoller = setInterval(async () => {
+                    if (Date.now() - startedAt > 15 * 60 * 1000) {
+                        clearInterval(handoffPoller);
+                        return;
+                    }
+                    let data = {};
+                    try {
+                        const response = await fetch(
+                            `${statusUrl}?rid=${encodeURIComponent(rid)}`,
+                            { credentials: 'same-origin' },
+                        );
+                        data = await response.json().catch(() => ({}));
+                    } catch {
+                        return;
+                    }
+                    if (data.status === 'invalid') {
+                        clearInterval(handoffPoller);
+                        return;
+                    }
+                    if (data.status !== 'ready') return;
+
+                    clearInterval(handoffPoller);
+                    setStatus('Sign-in detected. Opening the app...');
+                    try {
+                        const response = await fetch(handoffUrl, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken(),
+                            },
+                            body: JSON.stringify({ token: data.token }),
+                        });
+                        const result = await response.json().catch(() => ({}));
+                        if (response.ok && result.status === 'ok') {
+                            window.location.assign(result.redirect || homeUrl);
+                            return;
+                        }
+                        if (result.status === 'needs_profile') {
+                            setStatus('Almost done — finish creating your account where you opened the link, then reload this page.');
+                            return;
+                        }
+                        showError(result.message || 'Could not finish signing in here. Please request a new link.');
+                    } catch {
+                        showError('Could not finish signing in here. Please request a new link.');
+                    }
+                }, 3000);
             }
 
             if (sendAgain) {
@@ -199,6 +260,7 @@ function initFirebaseAuth() {
                     const result = await signInWithEmailLink(auth, email, window.location.href);
                     try {
                         localStorage.removeItem('emailForSignIn');
+                        localStorage.removeItem('emailForSignInRid');
                     } catch {
                         // Ignore storage failures.
                     }
@@ -214,7 +276,10 @@ function initFirebaseAuth() {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken(),
                         },
-                        body: JSON.stringify({ idToken }),
+                        body: JSON.stringify({
+                            idToken,
+                            rid: new URLSearchParams(window.location.search).get('rid') || '',
+                        }),
                     });
                     const data = await response.json().catch(() => ({}));
 

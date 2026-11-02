@@ -5,12 +5,14 @@ from datetime import date, datetime, timezone as dt_timezone
 from pathlib import Path
 from unittest.mock import patch
 
+from django.core import signing
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from fitlifeguide.domain import CommentList, Profile, User, label_for, parse_date, parse_datetime
 from users.firebase_auth import InvalidFirebaseToken
+from users.views import HANDOFF_SALT
 
 
 class DomainTests(SimpleTestCase):
@@ -80,13 +82,13 @@ class FirebaseAuthViewTests(SimpleTestCase):
         self.assertContains(response, 'data-callback-url="http://testserver/auth/firebase/"')
         self.assertContains(response, 'data-complete-url="http://testserver/auth/complete-profile/"')
         self.assertContains(response, 'onsubmit="return false"')
-        self.assertContains(response, 'firebase_auth.js?v=5')
+        self.assertContains(response, 'firebase_auth.js?v=6')
         self.assertIn('no-store', response['Cache-Control'])
 
     def test_register_page_is_not_cached(self):
         response = self.client.get(reverse('register'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'firebase_auth.js?v=5')
+        self.assertContains(response, 'firebase_auth.js?v=6')
         self.assertIn('no-store', response['Cache-Control'])
 
     def test_callback_page_renders_absolute_urls(self):
@@ -213,3 +215,57 @@ class FirebaseAuthViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['status'], 'invalid')
         self.assertIn('username', response.json()['errors'])
+
+    def test_send_link_returns_request_id(self):
+        with patch('users.views.firebase_auth.generate_sign_in_with_email_link', return_value='https://link') as generate, \
+                patch('users.views.create_link_request') as create, \
+                patch('users.views.EmailMultiAlternatives') as mail_cls:
+            mail_cls.return_value.send.return_value = 1
+            response = self.post_json('send_sign_in_link', {'email': 'alex@example.com'})
+
+        self.assertEqual(response.status_code, 200)
+        rid = response.json()['rid']
+        self.assertTrue(rid)
+        create.assert_called_once_with(rid, 'alex@example.com')
+        generate.assert_called_once()
+        self.assertIn(f'rid={rid}', generate.call_args[0][1].url)
+
+    def test_callback_grants_link_request_for_handoff(self):
+        with patch('users.views.verify_firebase_id_token', return_value=self.verified), \
+                patch('users.views.get_user_by_firebase_uid', return_value=None), \
+                patch('users.views.get_user_by_email', return_value=None), \
+                patch('users.views.grant_link_request') as grant:
+            response = self.post_json('firebase_callback', {'idToken': 'token', 'rid': 'r1'})
+
+        self.assertEqual(response.status_code, 200)
+        grant.assert_called_once_with('r1', self.verified['uid'], self.verified['email'])
+
+    def test_handoff_login_logs_in_user(self):
+        token = signing.dumps(
+            {'rid': 'r1', 'uid': self.verified['uid'], 'email': 'alex@example.com'},
+            salt=HANDOFF_SALT,
+        )
+        with patch('users.views.consume_link_request', return_value={'uid': self.verified['uid'], 'email': 'alex@example.com'}), \
+                patch('users.views.get_user_by_firebase_uid', return_value=self.user):
+            response = self.post_json('handoff_login', {'token': token})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok', 'redirect': '/home/'})
+        self.assertEqual(self.client.session['_auth_user_id'], self.user.id)
+
+    def test_handoff_login_rejects_used_or_expired_token(self):
+        token = signing.dumps(
+            {'rid': 'r1', 'uid': self.verified['uid'], 'email': 'alex@example.com'},
+            salt=HANDOFF_SALT,
+        )
+        with patch('users.views.consume_link_request', return_value=None):
+            response = self.post_json('handoff_login', {'token': token})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['status'], 'error')
+
+    def test_handoff_login_rejects_garbage_token(self):
+        response = self.post_json('handoff_login', {'token': 'not-a-token'})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['status'], 'error')
